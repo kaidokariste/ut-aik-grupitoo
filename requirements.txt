@@ -1,0 +1,6 @@
+beautifulsoup4
+dotenv
+psycopg2-binary
+requests
+python-dateutil
+lxml
