@@ -17,3 +17,19 @@ CREATE TABLE silver.news
     link        VARCHAR
 );
 
+CREATE TABLE silver.news_incremental
+(
+    source            VARCHAR(10),
+    latest_news_dtime timestamptz
+);
+INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('ERR','2026-01-01 01:00:00.000000 +00:00');
+INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('AP','2026-01-01 01:00:00.000000 +00:00');
+
+
+------------------
+select * from silver.news where news.source = 'AP' order by news_dtime desc;
+select * from silver.news_incremental;
+
+--truncate silver.news;
+UPDATE silver.news_incremental set latest_news_dtime = '2026-05-09 13:59:00+03:00' where source = 'ERR'
+

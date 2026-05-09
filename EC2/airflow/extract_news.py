@@ -37,41 +37,134 @@ def get_err_news():
     currentbenchmark=''
     # List of excluded topics
     exclude_topics = ['Arhitektuur', 'Teater', 'ETV uudised', 'Kunst', 'Raadiouudised', 'Inimesed','Galerii',
-                      'Kultuurisaated','Viipekeelsed','Purjetamine','Tele/raadio','Film','Tennis','Iluuisutamine',
-                      'ETV spordi lühiuudised','Arvamus','Ühiskond','Elu','Loodus','kultuur','Galeriid','TV10 Olümpiastarti',
-                      'Keskkond','Muusika','ETV spordisaade','Kultuur']
+                      'Kultuurisaated','Viipekeelsed','Tele/raadio',
+                      'Arvamus','Ühiskond','Loodus','Galeriid','TV10 Olümpiastarti','Muusika','ETV spordisaade']
 
-    err_benchmark = dateutil.parser.parse('2021-12-19 10:11:00+0200')
-    print('Initial benchmark', currentbenchmark)
 
     r = requests.get("https://www.err.ee/rss")
     soup = BeautifulSoup(r.content, features='lxml-xml')
     articles = soup.find_all('item')
 
-    for a in articles:
-        pubDate = a.find('pubDate').text
-        isodate = dateutil.parser.parse(pubDate)
-        category = a.find('category').text
-        # Get only news where date is newer than current saved benchmark and category is not excluded
-        if err_benchmark < isodate and category not in exclude_topics:
-            title = a.find('title').text
-            description = a.find('description').text
-            link = a.find('link').text
-            #Preparing discord message
-            #message = '[**{}**]({})   \n`{} | {}`   \n{}   \n   \n\n\n'.format(title,link,isodate.strftime("%H:%M %d.%m.%Y"),category, description)
-            #requests.post(teamshook, json={"content": message})
-            #ti.xcom_push(key='latest_news', value=message)
-            print(isodate, title, category, description, link)
-            dates.append(isodate)
     try:
-        currentbenchmark = max(dates)
-    except ValueError:
-        pass
 
-    ct = currentbenchmark.strftime("%Y-%m-%d %H:%M:%S%z")
-    print(ct)
+        conn = get_connection()
+        cur = conn.cursor()
 
+        sql_ts = """select latest_news_dtime from silver.news_incremental where source = 'ERR'"""
+
+        ## Peaks tegema päringu incremental tabelisse
+        cur.execute(sql_ts)
+        result = cur.fetchone()
+
+        err_benchmark = result[0]
+
+        print('Initial ERR benchmark', err_benchmark)
+
+        for a in articles:
+            pubDate = a.find('pubDate').text
+            isodate = dateutil.parser.parse(pubDate)
+            category = a.find('category').text
+            # Get only news where date is newer than current saved benchmark and category is not excluded
+            if err_benchmark < isodate and category not in exclude_topics:
+                title = a.find('title').text
+                description = a.find('description').text
+                link = a.find('link').text
+
+                # SQL Insert
+                sql = """INSERT INTO silver.news (source, news_dtime, title, category, description, link) VALUES (%s, %s, %s, %s, %s, %s )"""
+
+                cur.execute(sql, ('ERR', isodate, title, category, description, link))
+                dates.append(isodate)
+                print(f"Salvestatud: {title}")
+
+                dates.append(isodate)
+
+        if dates:
+            currentbenchmark = max(dates)
+            print(f"Uus ERR benchmark: {currentbenchmark}")
+
+        # Uuenda ERR benchmark
+        sql_update = """ UPDATE silver.news_incremental set latest_news_dtime = COALESCE(NULLIF(%s::TEXT,''),latest_news_dtime::text)::timestamptz where source = 'ERR' """
+        cur.execute(sql_update, (currentbenchmark,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except psycopg2.Error as err:
+        print(f"Andmebaasi viga: {err}")
+    except Exception as e:
+        print(f"Viga: {e}")
+
+
+def get_aripaev_news():
+    dates = []
+
+    currentbenchmark = ''
+    # List of excluded topics
+
+    exclude_topics = ['Lisa', 'Saated', 'TOP', 'Leht']
+
+
+    r = requests.get("http://feeds.feedburner.com/aripaev-rss")
+    soup = BeautifulSoup(r.content, features='lxml-xml')
+    articles = soup.find_all('item')
+
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        sql_ts = """SELECT latest_news_dtime FROM silver.news_incremental WHERE source = 'AP'"""
+
+        ## Peaks tegema päringu incremental tabelisse
+
+        cur.execute(sql_ts)
+        result = cur.fetchone()
+
+        ap_benchmark = result[0]
+
+        print('Initial AP benchmark', ap_benchmark)
+
+        for a in articles:
+            pubDate = a.find('pubDate').text.strip()
+            isodate = dateutil.parser.parse(pubDate)
+            category = a.find('category').text.strip()
+            # Get only news where date is newer than current saved benchmark and category is not excluded
+
+            if ap_benchmark < isodate and category not in exclude_topics:
+                title = a.find('title').text.strip()
+                description = a.find('description').text.strip()
+                link = a.find('link').text.strip()
+
+            # SQL Insert
+            sql = """INSERT INTO silver.news (source, news_dtime, title, category, description, link) VALUES (%s, %s, %s, %s, %s, %s)"""
+
+            cur.execute(sql, ('AP', isodate, title, category, description, link))
+            dates.append(isodate)
+            print(f"Salvestatud: {title}")
+
+            dates.append(isodate)
+
+        if dates:
+            currentbenchmark = max(dates)
+            print(f"Uus AP benchmark: {currentbenchmark}")
+
+        # Uuenda ERR benchmark
+        sql_update = """ UPDATE silver.news_incremental \
+                         SET latest_news_dtime = COALESCE(NULLIF(%s::TEXT, ''), latest_news_dtime::TEXT)::TIMESTAMPTZ \
+                         WHERE source = 'AP' """
+        cur.execute(sql_update, (currentbenchmark,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except psycopg2.Error as err:
+        print(f"Andmebaasi viga: {err}")
+    except Exception as e:
+        print(f"Viga: {e}")
 
 if __name__ == "__main__":
-    get_err_news()
+    #get_err_news()
+    get_aripaev_news()
     #print(db_query())
