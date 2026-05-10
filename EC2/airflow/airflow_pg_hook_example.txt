@@ -1,0 +1,18 @@
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+
+def log_something(data, some_type):
+    pg_hook = PostgresHook(
+        postgres_conn_id='aws-postgres',  # Connection ID in airflow
+        schema='db_news'  # Database Name
+    )
+
+    pg_conn = pg_hook.get_conn()
+    cursor = pg_conn.cursor()
+
+    insert_sql = f"""INSERT INTO schema.table (id, mnemo, type) VALUES {values}"""
+    cursor.execute(insert_sql)
+
+    pg_conn.commit()
+    cursor.close()
+    pg_conn.close()

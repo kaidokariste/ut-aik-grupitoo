@@ -27,9 +27,10 @@ INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('AP','2026
 
 
 ------------------
-select * from silver.news where news.source = 'AP' order by news_dtime desc;
+select * from silver.news order by news_dtime desc;
 select * from silver.news_incremental;
 
---truncate silver.news;
-UPDATE silver.news_incremental set latest_news_dtime = '2026-05-09 13:59:00+03:00' where source = 'ERR'
 
+--UPDATE silver.news_incremental set latest_news_dtime = '2026-05-09 13:59:00+03:00' where source = 'ERR'
+
+select * from  silver.news WHERE title ILIKE ANY (ARRAY['%trump%', '%usa%']);

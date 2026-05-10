@@ -77,8 +77,6 @@ def get_err_news():
                 dates.append(isodate)
                 print(f"Salvestatud: {title}")
 
-                dates.append(isodate)
-
         if dates:
             currentbenchmark = max(dates)
             print(f"Uus ERR benchmark: {currentbenchmark}")
@@ -142,8 +140,6 @@ def get_aripaev_news():
             cur.execute(sql, ('AP', isodate, title, category, description, link))
             dates.append(isodate)
             print(f"Salvestatud: {title}")
-
-            dates.append(isodate)
 
         if dates:
             currentbenchmark = max(dates)
