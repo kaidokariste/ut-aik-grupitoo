@@ -49,6 +49,9 @@ def get_aripaev_news():
 
         for a in articles:
             pubDate = a.find('pubDate').text.strip()
+
+            # isodate: Parsib kuupäeva stringist ja tuvastab automaatselt ajavööndi (timezone-aware).
+            # Sobib hästi PostgreSQL-i 'TIMESTAMP WITH TIME ZONE' tüübiga.
             isodate = dateutil.parser.parse(pubDate)
             category = a.find('category').text.strip()
 
@@ -118,6 +121,9 @@ def get_err_news():
 
         for a in articles:
             pubDate = a.find('pubDate').text
+
+            # isodate: Parsib kuupäeva stringist ja tuvastab automaatselt ajavööndi (timezone-aware).
+            # Sobib hästi PostgreSQL-i 'TIMESTAMP WITH TIME ZONE' tüübiga.
             isodate = dateutil.parser.parse(pubDate)
             category = a.find('category').text
 
