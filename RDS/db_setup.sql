@@ -57,8 +57,9 @@ WITH cleaned_news AS (SELECT DISTINCT description
 
 SELECT sona, COUNT(sona) AS total_use
 FROM deconstructed_sentence
-WHERE LOWER(trim(sona)) NOT IN ('ja', 'ning', 'on', 'saab', 'peaks', 'kuid', 'vaid','kes','järel','korda',
-                          'aga', 'mille', 'rohkem','pärast','sai','kirjutab','seda,','kõik','pühapäeval','laupäeval',
-                          'et','ehk','ei', 'kui', 'ka', 'oli', 'oma', 'ütles', 'sõnul', 'mis','-')
+WHERE LOWER(trim(sona)) NOT IN ('ja', 'ning', 'on', 'saab', 'peaks', 'kuid', 'vaid','kes','järel','korda','toimuval',
+                                'aga', 'mille', 'rohkem','pärast','sai','kirjutab','seda','kõik','pühapäeval','laupäeval',
+                                'et','ehk','ei', 'kui', 'ka', 'oli', 'oma', 'ütles', 'sõnul', 'mis','-','stuudios','alistas',
+                                'tekkinud')
 GROUP BY sona
 ORDER BY total_use DESC;
