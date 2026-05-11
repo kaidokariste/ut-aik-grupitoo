@@ -25,8 +25,12 @@ CREATE TABLE silver.news_incremental
 INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('ERR','2026-01-01 01:00:00.000000 +00:00');
 INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('AP','2026-01-01 01:00:00.000000 +00:00');
 
+------------------------------
+-- Lisame tabelile surrogaatvõtme
+ALTER TABLE silver.news ADD COLUMN id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
 
 ------------------
+
 select * from silver.news order by news_dtime desc;
 select * from silver.news_incremental;
 
@@ -34,3 +38,28 @@ select * from silver.news_incremental;
 --UPDATE silver.news_incremental set latest_news_dtime = '2026-05-09 13:59:00+03:00' where source = 'ERR'
 
 select * from  silver.news WHERE title ILIKE ANY (ARRAY['%trump%', '%usa%']);
+select * from  silver.news WHERE title ILIKE ANY (ARRAY['%big%', '%pruunsild%','%eamets%','%laen%']);
+select * from  silver.news WHERE title ILIKE ANY (ARRAY['%sõda%', '%rahu%','%ukraina%','%venemaa%']);
+
+---------------
+
+-- IDEE
+---teemade sõnade puhastamine
+
+WITH cleaned_news AS (SELECT DISTINCT description
+                      FROM silver.news),
+
+     deconstructed_sentence AS (SELECT REGEXP_SPLIT_TO_TABLE(
+                                               description,
+                                               '\s+'
+                                       ) AS sona
+                                FROM cleaned_news)
+
+SELECT sona, COUNT(sona) AS total_use
+FROM deconstructed_sentence
+WHERE LOWER(trim(sona)) NOT IN ('ja', 'ning', 'on', 'saab', 'peaks', 'kuid', 'vaid','kes','järel','korda','toimuval',
+                                'aga', 'mille', 'rohkem','pärast','sai','kirjutab','seda','kõik','pühapäeval','laupäeval',
+                                'et','ehk','ei', 'kui', 'ka', 'oli', 'oma', 'ütles', 'sõnul', 'mis','-','stuudios','alistas',
+                                'tekkinud')
+GROUP BY sona
+ORDER BY total_use DESC;
