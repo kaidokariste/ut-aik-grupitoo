@@ -31,14 +31,14 @@ ALTER TABLE silver.news ADD COLUMN id BIGINT GENERATED ALWAYS AS IDENTITY PRIMAR
 
 ------------------
 
-select * from silver.news order by news_dtime desc;
+select min(news_dtime) from silver.news order by news_dtime desc;
 select * from silver.news_incremental;
 
 
 --UPDATE silver.news_incremental set latest_news_dtime = '2026-05-09 13:59:00+03:00' where source = 'ERR'
 
 select * from  silver.news WHERE title ILIKE ANY (ARRAY['%trump%', '%usa%']);
-select * from  silver.news WHERE title ILIKE ANY (ARRAY['%big%', '%pruunsild%','%eamets%','%laen%']);
+select * from  silver.news WHERE title ILIKE ANY (ARRAY['%big%', '%pruunsild%','%eamets%','%artur taavet%']);
 select * from  silver.news WHERE title ILIKE ANY (ARRAY['%sõda%', '%rahu%','%ukraina%','%venemaa%']);
 
 ---------------
@@ -57,9 +57,10 @@ WITH cleaned_news AS (SELECT DISTINCT description
 
 SELECT sona, COUNT(sona) AS total_use
 FROM deconstructed_sentence
-WHERE LOWER(trim(sona)) NOT IN ('ja', 'ning', 'on', 'saab', 'peaks', 'kuid', 'vaid','kes','järel','korda','toimuval',
-                                'aga', 'mille', 'rohkem','pärast','sai','kirjutab','seda','kõik','pühapäeval','laupäeval',
-                                'et','ehk','ei', 'kui', 'ka', 'oli', 'oma', 'ütles', 'sõnul', 'mis','-','stuudios','alistas',
-                                'tekkinud')
+WHERE LOWER(trim(sona)) NOT IN ('ja', 'ning', 'on', 'saab', 'peaks', 'kuid', 'vaid','kes','järel','korda','toimuval','mida','nii',
+                                'aga', 'mille', 'rohkem','pärast','sai','kirjutab','seda','kõik','pühapäeval','laupäeval','siis','sel',
+                                'et','ehk','ei', 'kui', 'ka', 'oli', 'oma', 'ütles', 'sõnul', 'mis','–','-','stuudios','alistas',
+                                'tekkinud','mail','esmaspäeval','teise','tänavu','üle','välja','kolm','nädal','tema','nad','nende'
+                                'tagasi','ERR-i','kõige','kus','aasta','teatas','nädalal','kuidas','nende','aastat')
 GROUP BY sona
-ORDER BY total_use DESC;
+ORDER BY total_use DESC, sona ASC ;
