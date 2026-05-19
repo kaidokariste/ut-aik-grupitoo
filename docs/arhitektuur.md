@@ -38,8 +38,8 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 | Roll | Vastutus | Täitja |
 |------|----------|--------|
 | Andmeallika omanik | Kirjutab sissevõtu loogika, hoiab API-t töös | [Kaido Kariste] |
-| Transformatsioonide omanik | Kirjutab mart kihi mudelid ja mõõdikute arvutuse | [Nimi] |
-| Kvaliteedi omanik | Kirjutab testid ja vaatab läbi ebaõnnestunud kontrollid | [Nimi] |
+| Transformatsioonide omanik | Kirjutab mart kihi mudelid ja mõõdikute arvutuse | [Arno Pilvar] |
+| Kvaliteedi omanik | Kirjutab testid ja vaatab läbi ebaõnnestunud kontrollid | [Laurynas Matušaitis] |
 | Näidikulaua omanik | Ehitab näidikulaua ja seob selle äriküsimusega | [Allar Lääne] |
 
 ## Riskid
