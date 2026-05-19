@@ -8,8 +8,9 @@
 
 **Mõõdikud:**
 
-1. Millise osakaalu kogu meediamahtudest moodustavad sihtriikidega (USA, Iraan, Iisrael, Ukraina, Venemaa) ja nendega seotud isikutega seonduvad uudised ERR-i ning Äripäeva päeva lõikes.
-2. Millistes temaatilistes kategooriates ja rubriikides nimetatud meediakanalid antud geopoliitilisi konflikte kajastavad?
+1. [Esimene KPI või mõõdik — näiteks: päevane müük poe kohta]
+2. [Teine KPI või mõõdik]
+3. [Kolmas KPI või mõõdik — vabatahtlik]
 
 ## Arhitektuur
 
