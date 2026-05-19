@@ -1,4 +1,4 @@
-# [GRUPI NIMI] — [PROJEKTI PEALKIRI]
+# Naksitrallid — Kriisikollete kajastus Eesti meedias
 
 > **Juhend:** Asenda kõik nurksulgudes vormid oma sisuga enne esitamist. Kustuta see juhendrida.
 
@@ -8,9 +8,8 @@
 
 **Mõõdikud:**
 
-1. [Esimene KPI või mõõdik — näiteks: päevane müük poe kohta]
-2. [Teine KPI või mõõdik]
-3. [Kolmas KPI või mõõdik — vabatahtlik]
+1. Millise osakaalu kogu meediamahtudest moodustavad sihtriikidega (USA, Iraan, Iisrael, Ukraina, Venemaa) ja nendega seotud isikutega seonduvad uudised ERR-i ning Äripäeva päeva lõikes.
+2. Millistes temaatilistes kategooriates ja rubriikides nimetatud meediakanalid antud geopoliitilisi konflikte kajastavad?
 
 ## Arhitektuur
 
