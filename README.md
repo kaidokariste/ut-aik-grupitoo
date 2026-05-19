@@ -14,14 +14,7 @@
 
 ## Arhitektuur
 
-```mermaid
-flowchart LR
-    source[Andmeallikas] --> ingest[Sissevõtt]
-    ingest --> staging[(staging)]
-    staging --> transform[Transformatsioon]
-    transform --> mart[(mart)]
-    mart --> dashboard[Näidikulaud]
-```
+![Arhitektuurne joonis](docs/ut-kursuse-arhitektuur.png)
 
 Täpsem kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
 
@@ -29,18 +22,18 @@ Täpsem kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
 
 | Allikas | Tüüp | Ajas muutuv? | Roll |
 |---------|------|--------------|------|
-| [Andmeallika nimi] | [API / fail / andmebaas] | Jah, [iga tund / päevas / muu] | Põhiandmevoog |
-| [Teise allika nimi] | [seed / dim-tabel] | Ei, staatiline | Kõrvaltabel |
+| [ERR RSS](https://www.err.ee/rss) | RSS | Jah, iga tund | Põhiandmevoog |
+| [Äripäev RSS](http://feeds.feedburner.com/aripaev-rss) | RSS | Jah, iga tund  | Põhiandmevoog |
 
 ## Stack
 
 | Komponent | Tööriist |
 |-----------|---------|
-| Sissevõtt | [Python / Airflow / muu] |
-| Transformatsioon | [SQL / dbt / muu] |
-| Andmehoidla | PostgreSQL |
-| Näidikulaud | [Superset / Streamlit / muu] |
-| Orkestreerimine | [Airflow / cron / muu] |
+| Sissevõtt | Airflow |
+| Transformatsioon | Python |
+| Andmehoidla | Amazon RDS PostgreSQL baasil |
+| Näidikulaud | Metabase |
+| Orkestreerimine | Airflow |
 
 ## Käivitamine
 
