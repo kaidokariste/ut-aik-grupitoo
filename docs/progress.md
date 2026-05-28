@@ -1,45 +1,33 @@
 # Edenemisraport
 
-> **Juhend:** See fail on projektitöö teise nädala väljund. Uuenda lühidalt iga esitamise eel. Kustuta see juhendrida.
-
 ## Mis on valmis
 
 - [X] AWS konto on loodud
-- [X] Andmeid saadakse allikast kätte
-- [X] Andmed laetakse `silver` kihti
-- [X] Vähemalt üks transformatsioon toimib
-- [X] Vähemalt üks näidikulaud on nähtaval
+- [X] Andmeid saadakse allikast kätte (ERR ja Äripäev RSS-vood)
+- [X] Andmed laetakse `silver` kihti inkrementaalselt
+- [X] Vähemalt üks transformatsioon toimib (kuupäevade parsijad ja teemade filtreerimine)
+- [X] Vähemalt üks näidikulaud on nähtaval (Metabase seadistatud)
 - [ ] Vähemalt üks andmekvaliteedi test läbib
 
-[Täpsusta lühidalt, mis täpselt valmis on]
+Andmevoog on otsast lõpuni käivitatav (allikast `silver` kihti ja sealt visuaali). Airflow DAG-id on seadistatud jooksma ja andmed laetakse andmebaasi, vältides dubleerimist (kasutades `news_incremental` tabelit).
 
-## Järgmised sammud
+Esimene visuaal:
+![Sprint 2 visuaal](./visuaal1.png)
 
-- AWS konto loomine
-- EC2 instantsi seadistamine Airflow jooksutamiseks
-- Docker Compose abil Airflow ülesseadmine
-- _Silver_ kihi andmemudel ja inkrementaalsustabel 
-- Esialgne python script, mis
-    - Extract - vajalike väljade eraldamine RSS XML-st
-    - Transform - ajavööndite ja kuupäevaformaatide teisendamine ISO standardisse
-    - Load - Inkrementaalne laadimine _Silver_ kihi tabelisse
-- Airflow DAGi kokkupanek ja CRON graafik.
-- Metabase ülesseadmine Docker Compose abil
-- Näidikulaua koostamine
-- Andmekvaliteedi kontroll dubleerivate uudiste leidmiseks
+## Järgmised sammud (Sprint 3)
+
+- Toorandmete (Bronze) kihi implementeerimine: RSS XML-i salvestamine algkujul `bronze` skeemi enne transformatsioone, et täita arhitektuuri nõuded.
+- Andmekvaliteedi testide (näiteks dubleerivate uudiste kontrolli) lisamine Airflow töövoogu.
+- Visuaalide täiendamine ja viimistlemine Metabase'is.
+- Andmemudeli dokumentatsiooni ja arhitektuuri jooniste täpsustamine.
 
 ## Mis takistab
 
-- "Praegu pole blokeerivaid probleeme"
+- Praegu ei ole otseseid blokeerivaid probleeme.
+- Tehniline võlg: Hetkel laetakse andmed skriptiga otse `silver` kihti. `Bronze` kihi loomine ja sissevõtu loogika kohandamine on lükatud Sprint 3 ülesandeks.
 
 ## Kontrollpunkt
 
-Käsk, millega saab kontrollida, et töövoog töötab:
+**Märkus infrastruktuuri kohta:** Projekti komponendid on hetkel hajutatud (Airflow asub AWS EC2 virtuaalmasinas, andmebaas on AWS RDS teenuses ning Metabase asub ettevõtte sisevõrgus). Seetõttu ei ole projekti toimivust kolmandal osapoolel võimalik lokaalselt (näiteks `docker compose up` käsuga) lihtsalt kontrollida, samuti pole ühe käsuga ülesseadmine olnud eesmärgiks.
 
-```bash
-# [Lisa siia käsk, mis näitab, et andmed liiguvad allikast näidikulauani]
-# Näiteks:
-docker compose exec pipeline python scripts/run_pipeline.py check
-```
-
-Oodatav tulemus: [Kirjelda, mida töötav süsteem väljastab]
+Andmevoo otsast-lõpuni toimimise peamiseks tõestuseks on esitatud ülaltoodud väljavõte Metabase'ist. Vajadusel saame tehnilist toimivust ja andmebaasi sisu täiendavalt demonstreerida (nt üle ekraanijagamise).

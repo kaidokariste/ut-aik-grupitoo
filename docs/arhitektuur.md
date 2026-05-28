@@ -31,7 +31,7 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 | `silver` | Hoiab transformeeritud ja ärilogikat sisaldavaid tabeleid. |
 | `gold` | Puhastatud, rikastatud andmestik. |
 
-## Andmebaasi olem-seose mudel (ERD)
+## Praegune andmebaasi olem-seose mudel (ERD)
 
 ```mermaid
 erDiagram
