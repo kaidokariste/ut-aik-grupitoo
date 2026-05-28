@@ -4,11 +4,11 @@
 
 ## Mis on valmis
 
-- [ ] AWS konto on loodud
-- [ ] Andmeid saadakse allikast kätte
-- [ ] Andmed laetakse `silver` kihti
-- [ ] Vähemalt üks transformatsioon toimib
-- [ ] Vähemalt üks näidikulaud on nähtaval
+- [X] AWS konto on loodud
+- [X] Andmeid saadakse allikast kätte
+- [X] Andmed laetakse `silver` kihti
+- [X] Vähemalt üks transformatsioon toimib
+- [X] Vähemalt üks näidikulaud on nähtaval
 - [ ] Vähemalt üks andmekvaliteedi test läbib
 
 [Täpsusta lühidalt, mis täpselt valmis on]
