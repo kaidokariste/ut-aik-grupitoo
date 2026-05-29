@@ -31,6 +31,29 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 | `silver` | Hoiab transformeeritud ja ärilogikat sisaldavaid tabeleid. |
 | `gold` | Puhastatud, rikastatud andmestik. |
 
+## Praegune andmebaasi olem-seose mudel (ERD)
+
+```mermaid
+erDiagram
+    "silver.news" {
+        BIGINT id PK
+        VARCHAR source
+        TIMESTAMP_TZ news_dtime
+        VARCHAR category
+        VARCHAR title
+        TEXT description
+        VARCHAR link
+    }
+    "silver.news_incremental" {
+        VARCHAR(10) source
+        TIMESTAMPTZ latest_news_dtime
+    }
+    "silver.keywords" {
+        TEXT keyword PK
+        BOOLEAN wanted
+    }
+```
+
 ## Tööjaotus
 
 | Roll | Vastutus | Täitja |
