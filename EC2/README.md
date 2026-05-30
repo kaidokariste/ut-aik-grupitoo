@@ -27,7 +27,7 @@ Airflow on paigaldatud Docker Compose abil (`docker-compose.yaml`) ning kasutab 
 
 ### DAG: `airflow_etl_dag_news`
 
-DAG-id käivituvad **iga tunni tagant** (`0 * * * *`) ja sisaldab kahte paralleelset taski:
+DAG-id käivituvad **iga tunni tagant** (`0 * * * *`):
 
 1. **`processing_err_news`** — tõmbab ERR RSS voost uudised
 2. **`processing_aripaev_news`** — tõmbab Äripäeva RSS voost uudised
