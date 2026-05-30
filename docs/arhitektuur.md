@@ -42,7 +42,7 @@ flowchart LR
             end
         end
 
-        subgraph VISUAL["Ettevõtte sise võrk"]
+        subgraph VISUAL["Ettevõtte sisevõrk"]
             METABASE["Metabase<br>Dashboardid ja analüüs"]
         end
     end

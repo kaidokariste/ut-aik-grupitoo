@@ -64,34 +64,90 @@ Täpsem joonis ja kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
 | Näidikulaud | Metabase | Ärianalüütika ja visuaalid |
 | Orkestreerimine | Airflow | Käivitab transformatsiooni (hetkel testimisel, kulude säästmiseks käsitsi või tunnisel graafikul) |
 
-## Käivitamine
+## Käivitamine ja seadistamine
 
-```bash
-# 1. Klooni repo ja liigu kausta
-git clone <repo-url>
-cd <projekti-kaust>
+Kuna projekt kasutab erinevaid AWS-teenuseid, on käivitamine ja seadistamine jagatud komponentide kaupa:
 
-# 2. Kopeeri keskkonnamuutujad
-cp .env.example .env
-# Muuda .env failis paroolid ja muud seaded vastavalt vajadusele
+### 1. Andmebaas (Amazon RDS PostgreSQL)
+Projekti andmebaas asub Amazon RDS-is (mootor: PostgreSQL, klass: `db.t4g.micro`).
+- Andmebaasi skeemide (`bronze`, `silver`, `gold`), tabelite ja algsete märksõnade seadistamiseks tuleb andmebaasis käivitada skript [db_setup.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/db_setup.sql).
+- Täpsem info andmebaasi struktuuri kohta asub kataloogis [RDS/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/README.md).
 
-# 3. Käivita teenused
-docker compose up -d --build
-```
+### 2. Sissevõtt (AWS Lambda & Amazon EventBridge)
+Uudistevoogude tõmbamiseks ja toorandmete salvestamiseks `bronze.raw` tabelisse kasutatakse kahte serverless AWS Lambda funktsiooni: `rss-fetcher-err` ja `rss-fetcher-aripaev`.
+- Lambda funktsioonide kood asub failis [lambda_function.py](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/lambda_function.py).
+- Funktsioonide käivitamist reguleerib Amazon EventBridge Scheduler kord tunnis.
+- Rohkem detaile sissevõtu seadistamise kohta leiab juhendist [lambda/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/README.md).
 
-Airflow (kui kasutatakse): http://localhost:8080 (kasutaja: airflow / parool: airflow)
-Näidikulaud: http://localhost:[PORT]
+### 3. Transformatsioon ja orkestreerimine (AWS EC2 & Apache Airflow)
+Apache Airflow keskkond töötab AWS EC2 instantsis (Ubuntu 26.04 LTS) Docker Compose abil.
+Airflow käivitamiseks masinas:
+1. Liigu Airflow kausta:
+   ```bash
+   cd EC2/airflow
+   ```
+2. Kopeeri keskkonnamuutujate näidis ja seadista see (vt [Saladused](#saladused-ja-konfiguratsioon)):
+   ```bash
+   cp .env.example .env
+   ```
+3. Käivita Airflow teenused:
+   ```bash
+   docker compose up -d
+   ```
+4. Ava veebiliides: `http://<EC2-IP>:8080` (kasutaja/parool seadistatakse `.env` failis).
+5. Lisaks tuleb Airflow veebiliideses luua andmebaasi ühendus nimega `aws-postgres` (tüüp: Postgres), mis viitab Amazon RDS andmebaasile.
+- Täpsem info asub juhendis [EC2/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/README.md).
+
+### 4. Näidikulaud (Metabase)
+Metabase töötab Docker Compose abil kas lokaalselt või EC2 virtuaalmasinas.
+1. Liigu Metabase kausta:
+   ```bash
+   cd metabase
+   ```
+2. Kopeeri keskkonnamuutujate fail ja seadista see:
+   ```bash
+   cp .env.example .env
+   ```
+3. Käivita teenused:
+   ```bash
+   docker compose up -d
+   ```
+4. Ava Metabase veebiliides: `http://localhost:3000` (või vastaval EC2 pordil).
+5. Ühenda Metabase oma RDS andmebaasiga veebiliidese seadete kaudu.
+- Täpsem info asub juhendis [metabase/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/metabase/README.md).
 
 ## Saladused ja konfiguratsioon
 
-Kõik saladused (paroolid, API võtmed, andmebaasi URL-id) on `.env` failis. Repos on ainult `.env.example`, mis näitab vajalike muutujate struktuuri ilma tegelike väärtusteta. Päris `.env` faili ei tohi GitHubi panna - see on `.gitignore`-s.
+Kuna rakendus on jaotatud erinevate AWS teenuste vahel, hallatakse konfiguratsiooni ja saladusi (paroolid, hosti aadressid jne) mitmel tasandil. Neid ei lisata repositooriumisse ja need on lisatud `.gitignore` faili.
 
-Vajalikud muutujad:
+### 1. AWS Lambda & AWS KMS
+AWS Lambda keskkonnamuutujad konfigureeritakse AWS-i konsoolis või deploy skriptides:
+- `SOURCE_NAME` — allika nimi (nt `ERR` või `ARIPAEV`).
+- `RSS_URL` — RSS voo aadress.
+- `DB_HOST` — RDS hosti endpoint.
+- `DB_PORT` — RDS andmebaasi port (vaikimisi 5432).
+- `DB_NAME` — andmebaasi nimi (nt `db_news`).
+- `DB_USER` — andmebaasi kasutaja.
+- `DB_PASSWORD` — **AWS KMS (Key Management Service) abil krüpteeritud parool**. Lambda funktsioon dekrüpteerib selle käivitamisel cold start optimeerimisega.
 
-| Muutuja | Tähendus | Näide |
-|---------|----------|-------|
-| `DB_PASSWORD` | PostgreSQL parool | (saladus) |
-| `[teised]` | ... | ... |
+### 2. Airflow (EC2) keskkonnamuutujad (`EC2/airflow/.env`)
+Airflow ja selle DAG-ide käivitamiseks vajalikud seaded asuvad failis [EC2/airflow/.env.example](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/.env.example):
+- `DB_DATABASE` — RDS andmebaasi nimi.
+- `DB_USERNAME` — RDS andmebaasi kasutaja.
+- `DB_HOSTNAME` — RDS andmebaasi hosti endpoint.
+- `DB_PASSWORD` — RDS andmebaasi parool.
+- `AIRFLOW_UID` — Airflow failiõiguste kasutaja ID.
+- `_AIRFLOW_WWW_USER_USERNAME` — Airflow veebiliidese administraatori kasutajanimi.
+- `_AIRFLOW_WWW_USER_PASSWORD` — Airflow veebiliidese administraatori parool.
+
+### 3. Metabase keskkonnamuutujad (`metabase/.env`)
+Metabase enda metaandmebaasi konfigureerimiseks kasutatakse faili [metabase/.env.example](file:///c:/Users/arnop/ut-aik-grupitoo/metabase/.env.example):
+- `DB_NAME` — Metabase metaandmebaasi nimi.
+- `DB_USER` — Metabase metaandmebaasi kasutaja.
+- `DB_PASSWORD` — Metabase metaandmebaasi parool.
+- `DB_DATA_DIR` — PostgreSQL andmekataloog konteineris.
+- `MB_PORT` — Metabase rakenduse port (vaikimisi 3000).
+- `MB_JAVA_TIMEZONE` — ajavöönd (nt `Europe/Tallinn`).
 
 ## Andmevoog lühidalt
 
@@ -116,16 +172,40 @@ Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
 
 ```
 .
-├── README.md
-├── compose.yml
-├──
-├── .env.example
 ├── .gitignore
+├── README.md
 ├── docs/
-│   ├── arhitektuur.md      ← nädal 1 väljund
-│   └── progress.md         ← nädal 2 väljund
-└── ...                     ← ülejäänud projektifailid
+│   ├── arhitektuur.md        ← Projekti arhitektuur ja andmevood
+│   └── progress.md           ← Progressi logi
+├── EC2/
+│   ├── README.md             ← Airflow seadistamine EC2-s
+│   └── airflow/
+│       ├── .env.example
+│       ├── airflow-etl-dag-news.py  ← Airflow DAG definitsioon
+│       ├── docker-compose.yaml
+│       ├── extract_news.py   ← Uudiste ETL standalone skript
+│       ├── requirements.txt
+│       └── airflow_pg_hook_example.txt
+├── lambda/
+│   ├── README.md             ← Sissevõtu Lambda funktsioonide juhend
+│   └── lambda_function.py    ← Lambda funktsiooni kood (ERR ja Äripäev)
+├── metabase/
+│   ├── .env.example
+│   ├── README.md             ← Metabase dashboardi juhend
+│   ├── docker-compose.yml
+│   └── metabase_queries.sql  ← Dashboardi SQL päringud
+└── RDS/
+    ├── README.md             ← RDS andmebaasi ja tabelite seosed (ERD)
+    ├── bronze.sql            ← Bronze kihi tabeli loomine
+    └── db_setup.sql          ← Andmebaasi skeemide ja tabelite loomise skript
 ```
+
+### Olulisemad failid:
+- **Dokumentatsioon**: [arhitektuur.md](file:///c:/Users/arnop/ut-aik-grupitoo/docs/arhitektuur.md), [progress.md](file:///c:/Users/arnop/ut-aik-grupitoo/docs/progress.md)
+- **Sissevõtt (AWS Lambda)**: [lambda_function.py](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/lambda_function.py)
+- **ETL & Orkestreerimine (Airflow)**: [airflow-etl-dag-news.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-etl-dag-news.py), [extract_news.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/extract_news.py)
+- **Andmebaas (PostgreSQL RDS)**: [db_setup.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/db_setup.sql), [bronze.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/bronze.sql)
+- **Näidikulaud (Metabase)**: [metabase_queries.sql](file:///c:/Users/arnop/ut-aik-grupitoo/metabase/metabase_queries.sql)
 
 ## Kokkuvõte, puudused ja võimalikud edasiarendused
 
