@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS bronze;
+
 CREATE TABLE IF NOT EXISTS bronze.raw
 (
     id                 BIGSERIAL PRIMARY KEY,
@@ -8,3 +10,7 @@ CREATE TABLE IF NOT EXISTS bronze.raw
 );
 
 CREATE INDEX IF NOT EXISTS idx_hash ON bronze.raw (hash);
+
+-- Lisame silver.news_incremental tabelisse veeru viimase töödeldud bronze rea jälgimiseks
+ALTER TABLE silver.news_incremental
+    ADD COLUMN IF NOT EXISTS latest_bronze_id BIGINT DEFAULT 0;

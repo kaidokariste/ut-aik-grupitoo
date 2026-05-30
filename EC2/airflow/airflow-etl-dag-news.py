@@ -1,3 +1,12 @@
+# ============================================================
+# DEPRECATED / AEGUNUD
+# See DAG on asendatud eraldiseisvate komponentidega:
+#   - Ekstraheerimine (Extract): Lambda funktsioonid → bronze.raw
+#   - Transformatsioon ja Laadimine (Transform + Load):
+#       - airflow-transform-err.py (ERR bronze → silver)
+#       - airflow-transform-aripaev.py (Äripäev bronze → silver)
+# ============================================================
+
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime

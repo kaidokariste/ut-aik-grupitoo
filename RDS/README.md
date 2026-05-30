@@ -62,6 +62,7 @@ Inkrementaalse laadimise jälgimistabel:
 |-------|------|-----------|
 | `source` | VARCHAR(10) | Allikas (ERR / AP) |
 | `latest_news_dtime` | TIMESTAMPTZ | Viimase töödeldud uudise ajatempel |
+| `latest_bronze_id` | BIGINT | Viimati töödeldud `bronze.raw` rea ID |
 
 ### Silver kiht — `silver.keywords`
 
@@ -80,7 +81,7 @@ Märksõnade tabel teksti analüüsiks ja stoppsõnade filtreerimiseks:
 
 ```mermaid
 erDiagram
-    bronze_raw {
+    "bronze.raw" {
         BIGSERIAL id PK
         TEXT source
         TIMESTAMPTZ inserted_at
@@ -88,7 +89,7 @@ erDiagram
         TEXT body
     }
 
-    silver_news {
+    "silver.news" {
         BIGINT id PK
         VARCHAR source
         TIMESTAMPTZ news_dtime
@@ -98,38 +99,23 @@ erDiagram
         VARCHAR link
     }
 
-    silver_news_incremental {
+    "silver.news_incremental" {
         VARCHAR source
         TIMESTAMPTZ latest_news_dtime
+        BIGINT latest_bronze_id
     }
 
-    silver_keywords {
+    "silver.keywords" {
         TEXT keyword PK
         BOOLEAN wanted
     }
 
- 
-    silver_news_incremental ||--o{ silver_news : "jälgib viimast laadimist"
-    silver_keywords ||--|| silver_news : "kasutatakse analüüsis"
+    "bronze.raw" ||--o{ "silver.news" : "allikas (XML parsimine)"
+    "bronze.raw" ||--o{ "silver.news_incremental" : "viimati töödeldud rida"
+    "silver.news_incremental" ||--o{ "silver.news" : "jälgib viimast laadimist"
+    "silver.keywords" }|--|{ "silver.news" : "teksti analüüs"
 ```
 
-## Andmevoo ülevaade
-
-```mermaid
-flowchart TD
-    RSS1[" ERR RSS voog"]
-    RSS2["Äripäev RSS voog"]
-
-    RSS1 & RSS2 -->|HTTP| LAMBDA["AWS Lambda: <br>rss-fetcher-err<br>rss-fetcher-aripaev"]
-    LAMBDA -->|INSERT toore XML + MD5 räsi| BRONZE[(" bronze.raw")]
-
-    RSS1 & RSS2 -->|HTTP| AIRFLOW["Airflow DAG <br>(EC2 instants)"]
-    AIRFLOW -->|INSERT parsitud artiklid| SILVER_NEWS[(" silver.news")]
-    AIRFLOW -->|UPDATE ajatempel| SILVER_INC[(" silver.news_incremental")]
-
-    SILVER_NEWS --> METABASE["Metabase\nDashboardid ja analüüs"]
-    KEYWORDS[(" silver.keywords")] --> METABASE
-```
 
 ## Failide struktuur
 

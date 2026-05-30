@@ -26,13 +26,13 @@ Täpsem kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
 
 ## Stack
 
-| Komponent | Tööriist |
-|-----------|---------|
-| Sissevõtt | Airflow |
-| Transformatsioon | Python |
-| Andmehoidla | Amazon RDS PostgreSQL baasil |
-| Näidikulaud | Metabase |
-| Orkestreerimine | Airflow |
+| Komponent | Tööriist | Kirjeldus |
+|-----------|---------|-----------|
+| Sissevõtt (Extract) | AWS Lambda | Tõmbab RSS voo ja salvestab toore XML sisu `bronze.raw` tabelisse |
+| Transformatsioon (Transform & Load) | Airflow (Python & SQL) | Eraldi DAG-id kummallegi allikale (ERR ja Äripäev), loevad `bronze` kiht ja kirjutavad `silver` kihti |
+| Andmehoidla | Amazon RDS PostgreSQL | Medaljonarhitektuur (bronze -> silver -> gold) |
+| Näidikulaud | Metabase | Ärianalüütika ja visuaalid |
+| Orkestreerimine | Airflow | Käivitab transformatsiooni (hetkel testimisel, kulude säästmiseks käsitsi või tunnisel graafikul) |
 
 ## Käivitamine
 
@@ -47,9 +47,6 @@ cp .env.example .env
 
 # 3. Käivita teenused
 docker compose up -d --build
-
-# 4. [Vabatahtlik: käivita sissevõtt käsitsi esimesel korral]
-# docker compose exec pipeline python scripts/run_pipeline.py run-all
 ```
 
 Airflow (kui kasutatakse): http://localhost:8080 (kasutaja: airflow / parool: airflow)
@@ -68,19 +65,19 @@ Vajalikud muutujad:
 
 ## Andmevoog lühidalt
 
-1. **Sissevõtt** — [Kirjelda, kuidas andmed allikast kätte saadakse]
-2. **Laadimine** — Andmed laaditakse `staging` kihti
-3. **Transformatsioon** — [Kirjelda peamised arvutused ja mudelid]
-4. **Testimine** — [Mitu] andmekvaliteedi testi kontrollivad korrektsust
-5. **Näidikulaud** — [Kirjelda lühidalt, mida näidikulaud näitab]
+1. **Sissevõtt (Extract)** — AWS Lambda funktsioonid tõmbavad regulaarselt ERR ja Äripäeva RSS-vooge ning lisavad need unikaalsuse kontrolliga (MD5 räsi) `bronze.raw` tabelisse. Kuna see on serverless ja odav, saab seda jooksutada pidevalt.
+2. **Laadimine & Transformatsioon (Transform & Load)** — Airflow eraldiseisvad DAG-id (`transform_err_bronze_to_silver` ja `transform_aripaev_bronze_to_silver`) loevad toorandmeid skeemist `bronze`, viivad läbi transformatsioonid, filtreerivad lubamatud kategooriad ning kirjutavad tulemused `silver.news` tabelisse. Kulude kokkuhoiuks käivitatakse neid vajadusel käsitsi või korra tunnis (säästes EC2 tööaega).
+3. **Inkrementaalsus** — Airflow jälgib viimati töödeldud rea ID-d (`latest_bronze_id`) tabelis `silver.news_incremental`, tagades, et igal käivitamisel töödeldakse vaid uusi toorandmeid.
+4. **Testimine** — Andmekvaliteedi testid kontrollivad andmete terviklikkust.
+5. **Näidikulaud** — Metabase teeb päringuid `silver` (ja hiljem `gold`) kihi pealt äriküsimustele vastamiseks.
 
 ## Andmekvaliteedi testid
 
 Projekt kontrollib järgmist:
 
-1. [Test 1 - nt: kasutajate ID on unikaalne]
-2. [Test 2 - nt: tellimuse summa pole null]
-3. [Test 3 - nt: kuupäev jääb vahemikku 2020-2026]
+1. [Test 1 - *]
+2. [Test 2 - *]
+3. [Test 3 - *]
 [Lisa rohkem, kui sul on]
 
 Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
@@ -118,4 +115,4 @@ Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
 | Kaido Kariste | AWS teenused, seade |
 | Allar Lääne | Näidikulaud ja visuaalid |
 | Laurynas Matušaitis | Kvaliteedi omanik |
-| Arno Pilvar | Transformatsioonid |
+| Arno Pilvar | Transformatsioonid, lambdad |

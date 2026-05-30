@@ -4,33 +4,32 @@
 
 - [X] AWS konto on loodud
 - [X] Andmeid saadakse allikast kätte (ERR ja Äripäev RSS-vood)
-- [X] Andmed laetakse `silver` kihti inkrementaalselt
+- [X] Toorandmete `bronze` kihti laadimine AWS lambda funktsioonide abil
 - [X] Vähemalt üks transformatsioon toimib (kuupäevade parsijad ja teemade filtreerimine)
+- [X] Andmed laetakse `silver` kihti inkrementaalselt
 - [X] Vähemalt üks näidikulaud on nähtaval (Metabase seadistatud)
-- [X] Tooranmedete `bronze` kihti laadimine AWS lambda funktsioonide abil
+- [X] Ülesannete eraldatus (Separation of Concerns): loodud eraldi transformatsiooni DAG-id mõlemale allikale (`transform_err_bronze_to_silver` ja `transform_aripaev_bronze_to_silver`)
 - [ ] Vähemalt üks andmekvaliteedi test läbib
 
-Andmevoog on otsast lõpuni käivitatav (allikast `silver` kihti ja sealt visuaali). Airflow DAG-id on seadistatud jooksma ja andmed laetakse andmebaasi, vältides dubleerimist (kasutades `news_incremental` tabelit).
+Andmevoog on otsast lõpuni käivitatav (allikast `bronze` kihti läbi Lambda ja sealt `silver` kihti ning näidikutabeleisse). Vanem monoliitne DAG on märgitud aegunuks (deprecated). Kuna Airflow EC2 instantsi pidev jooksutamine on kulukas, on hetkel lahendus testimisfaasis: odavad serverless Lambda funktsioonid koguvad pidevalt toorandmeid `bronze` kihti ja uued transformatsiooni DAG-id käivitatakse käsitsi või tunnisel graafikul.
 
 Esimene visuaal:
 ![Sprint 2 visuaal](./visuaal1.png)
 
 ## Järgmised sammud (Sprint 3)
 
-- Toorandmete `bronze`-ist `silver`-isse laadimine:
-
-    Hetkel tehakse toorandmete sissevõtt, transformatsioon ja talletus `silver` tabelisse ühe  airflow DAG-i poolt. Lisaks on implementeertiud tooranmete salvestamine `bronze` kihti AWS lambda funktsiooni abil. Järgmise sammuna on plaanis kohandada Airflow DAG ainult transofrmatsiooni tegemise jaoks, et tekiks ülesannete eraldatus.
-- Andmekvaliteedi testide (näiteks dubleerivate uudiste kontrolli) lisamine eraldiseisva Airflow DAG-i kaudu.
+- Andmekvaliteedi testide lisamine (näiteks dubleerivate uudiste kontrolli).
 - Visuaalide täiendamine ja viimistlemine Metabase'is.
 - Andmemudeli dokumentatsiooni ja arhitektuuri jooniste täpsustamine.
 
 ## Mis takistab
 
 - Praegu ei ole otseseid blokeerivaid probleeme.
-- Tehniline võlg: Hetkel laetakse andmed skriptiga otse `silver` kihti.
 
 ## Kontrollpunkt
 
-**Märkus infrastruktuuri kohta:** Projekti komponendid on hetkel hajutatud (Airflow asub AWS EC2 virtuaalmasinas, andmebaas on AWS RDS teenuses ning Metabase asub ettevõtte sisevõrgus). Seetõttu ei ole projekti toimivust kolmandal osapoolel võimalik lokaalselt (näiteks `docker compose up` käsuga) lihtsalt kontrollida, samuti pole ühe käsuga ülesseadmine olnud eesmärgiks.
+**Märkus infrastruktuuri kohta:** Projekti komponendid on hetkel hajutatud (Sissevõtt toimub AWS Lambda abil, andmed kogunevad AWS RDS PostgreSQL andmebaasi, Airflow asub AWS EC2 virtuaalmasinas ning Metabase asub sisevõrgus). Seetõttu ei ole projekti toimivust kolmandal osapoolel lokaalselt lihtne käivitada, samuti pole ühe käsuga ülesseadmine olnud eesmärgiks.
 
-Andmevoo otsast-lõpuni toimimise peamiseks tõestuseks on esitatud ülaltoodud väljavõte Metabase'ist. Vajadusel saame tehnilist toimivust ja andmebaasi sisu täiendavalt demonstreerida (nt üle ekraanijagamise).
+Kuna Airflow EC2 instantsi pidev üleval hoidmine on kulukas (AWS tasuta krediit saaks muidu enne kursuse lõppu otsa), on Airflow ja selle uued transformatsiooni DAG-id hetkel käivitamisel vastavalt vajadusele. Kogu toorandmete sissevõtt (Lambda -> `bronze.raw`) töötab aga pidevalt ja efektiivselt.
+
+Andmevoo otsast-lõpuni toimimise tõestuseks on esitatud ülaltoodud väljavõte Metabase'ist. Vajadusel saame andmebaasi sisu täiendavalt demonstreerida.

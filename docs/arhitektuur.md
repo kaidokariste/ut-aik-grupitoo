@@ -19,26 +19,52 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 
 ## Andmevoog
 
-![image](./ut-kursuse-arhitektuur.png)
+```mermaid
+flowchart TD
+    RSS1["ERR RSS voog"]
+    RSS2["Äripäev RSS voog"]
 
-> Täpsusta diagrammi vastavalt oma projektile — lisa rohkem andmeallikaid, mudeleid või teenuseid.
+    RSS1 & RSS2 -->|HTTP| LAMBDA["AWS Lambda: <br>rss-fetcher-err<br>rss-fetcher-aripaev"]
+    LAMBDA -->|INSERT toore XML + MD5 räsi| BRONZE[("bronze.raw")]
+
+    BRONZE -->|Loe uued read| AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver"]
+    AIRFLOW -->|INSERT parsitud artiklid| SILVER_NEWS[("silver.news")]
+    AIRFLOW -->|UPDATE viimased ID-d ja ajad| SILVER_INC[("silver.news_incremental")]
+
+    SILVER_NEWS --> METABASE["Metabase<br>Dashboardid ja analüüs"]
+    KEYWORDS[("silver.keywords")] --> METABASE
+```
+
+Projekti andmevoog on jagatud kaheks eraldiseisvaks etapiks (Separation of Concerns):
+
+1. **Sissevõtt (Extract):** AWS Lambda funktsioonid pärinevad RSS voogudest andmeid ja salvestavad toore XML-i otse RDS andmebaasi `bronze.raw` tabelisse. Kuna Lambda on serverless ja tasuta limiidid/kulud on minimaalsed, saab seda jooksutada tihedalt. See tagab, et me ei kaota andmeid ka siis, kui Airflow server on maas.
+2. **Transformatsioon (Transform & Load):** Airflow DAG-id (`transform_err_bronze_to_silver` ja `transform_aripaev_bronze_to_silver`) loevad toorandmeid skeemist `bronze`, parsivad XML-i, puhastavad andmed ja laadivad need `silver.news` tabelisse. Kuna EC2 instantsi jooksutamine Airflow jaoks on kallis, hoitakse Airflow-d töös vaid vajadusel (nt testimise ajal ja käsitsi käivitamisel või tunnisel graafikul).
+
+Inkrementaalseks laadimiseks kasutatakse `latest_bronze_id` veergu `silver.news_incremental` tabelis, et vältida juba töödeldud ridade uuesti parsimist.
 
 ## Andmebaasi kihid
 
 | Kiht | Roll |
 |------|------|
-| `bronze` | Hoiab allika andmeid töötlemata kujul. |
-| `silver` | Hoiab transformeeritud ja ärilogikat sisaldavaid tabeleid. |
-| `gold` | Puhastatud, rikastatud andmestik. |
+| `bronze` | Hoiab allika toorandmeid töötlemata kujul (`bronze.raw` tabelis). |
+| `silver` | Hoiab transformeeritud, parsitud ja filtreeritud andmeid (`silver.news`, stoppsõnu/märksõnu `silver.keywords`). |
+| `gold` | Puhastatud, rikastatud andmestik (agregeeritud vaated ja tabelid ärianalüütika jaoks). |
 
 ## Praegune andmebaasi olem-seose mudel (ERD)
 
 ```mermaid
 erDiagram
+    "bronze.raw" {
+        BIGSERIAL id PK
+        TEXT source
+        TIMESTAMPTZ inserted_at
+        TEXT hash UK
+        TEXT body
+    }
     "silver.news" {
         BIGINT id PK
         VARCHAR source
-        TIMESTAMP_TZ news_dtime
+        TIMESTAMPTZ news_dtime
         VARCHAR category
         VARCHAR title
         TEXT description
@@ -47,11 +73,17 @@ erDiagram
     "silver.news_incremental" {
         VARCHAR(10) source
         TIMESTAMPTZ latest_news_dtime
+        BIGINT latest_bronze_id
     }
     "silver.keywords" {
         TEXT keyword PK
         BOOLEAN wanted
     }
+
+    "bronze.raw" ||--o{ "silver.news" : "allikas (XML parsimine)"
+    "bronze.raw" ||--o{ "silver.news_incremental" : "viimati töödeldud rida"
+    "silver.news_incremental" ||--o{ "silver.news" : "jälgib viimast laadimist"
+    "silver.keywords" }|--|{ "silver.news" : "teksti analüüs"
 ```
 
 ## Tööjaotus
@@ -62,6 +94,8 @@ erDiagram
 | Transformatsioonide omanik | Kirjutab mart kihi mudelid ja mõõdikute arvutuse | Arno Pilvar |
 | Kvaliteedi omanik | Kirjutab testid ja vaatab läbi ebaõnnestunud kontrollid | Laurynas Matušaitis |
 | Näidikulaua omanik | Ehitab näidikulaua ja seob selle äriküsimusega | Allar Lääne |
+
+*rollid on paindlikud ning muutuvad jooksvalt vastavalt vajadusele.
 
 ## Riskid
 
