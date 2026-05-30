@@ -13,9 +13,37 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 
 ## Arhitektuur
 
-![Arhitektuurne joonis](docs/ut-kursuse-arhitektuur.png)
+```mermaid
+flowchart TD
+    RSS1["ERR RSS voog"]
+    RSS2["Äripäev RSS voog"]
+    AIRFLOW["Apache Airflow"]
 
-Täpsem kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
+    RSS1 -->|HTTPS| LAMBDA["AWS Lambda"]
+    RSS2 -->|HTTP| LAMBDA["AWS Lambda"]
+    LAMBDA --> RDS[("Amazon RDS PostgreSQL")]
+    AIRFLOW -->RDS
+    RDS --> AIRFLOW
+
+    RDS --> METABASE[("Metabase")]
+
+    %% Stiiliklassid ja teemad
+    classDef allikas fill:#E1F5FE,stroke:#0288D1,stroke-width:2px,color:#01579B;
+    classDef lambda fill:#FFE0B2,stroke:#F57C00,stroke-width:2px,color:#E65100;
+    classDef andmed fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px,color:#1B5E20;
+    classDef airflow fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px,color:#4A148C;
+    classDef metabase fill:#FCE4EC,stroke:#E91E63,stroke-width:2px,color:#880E4F;
+
+    %% Klasside omistamine elementidele
+    class RSS1,RSS2 allikas;
+    class LAMBDA lambda;
+    class RDS andmed;
+    class METABASE metabase;
+    class AIRFLOW airflow;
+
+```
+
+Täpsem joonis ja kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
 
 ## Andmestik
 

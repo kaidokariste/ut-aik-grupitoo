@@ -21,19 +21,63 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 
 ```mermaid
 flowchart TD
-    RSS1["ERR RSS voog"]
-    RSS2["Äripäev RSS voog"]
+    subgraph ALLIKAD["Uudistevood (Välissüsteemid)"]
+        RSS1["ERR RSS voog"]
+        RSS2["Äripäev RSS voog"]
+    end
 
-    RSS1 & RSS2 -->|HTTP| LAMBDA["AWS Lambda: <br>rss-fetcher-err<br>rss-fetcher-aripaev"]
-    LAMBDA -->|INSERT toore XML + MD5 räsi| BRONZE[("bronze.raw")]
+    subgraph INGEST["AWS Cloud"]
+        LAMBDA1["AWS Lambda: rss-fetcher-err"]
+        LAMBDA2["AWS Lambda: rss-fetcher-aripaev"]
+        subgraph TRANS["AWS EC2 (Apache Airflow)"]
+            AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver"]
+        end
+            subgraph STORAGE["AWS RDS PostgreSQL"]
+        BRONZE[("bronze.raw")]
+        SILVER_NEWS[("silver.news")]
+        SILVER_INC[("silver.news_incremental")]
+        KEYWORDS[("silver.keywords")]
+        end
+    end
 
-    BRONZE -->|Loe uued read| AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver"]
-    AIRFLOW -->|INSERT parsitud artiklid| SILVER_NEWS[("silver.news")]
-    AIRFLOW -->|UPDATE viimased ID-d ja ajad| SILVER_INC[("silver.news_incremental")]
+    subgraph VISUAL["Ettevõtte sisevõrk"]
+        METABASE["Metabase<br>Dashboardid ja analüüs"]
+    end
 
-    SILVER_NEWS --> METABASE["Metabase<br>Dashboardid ja analüüs"]
-    KEYWORDS[("silver.keywords")] --> METABASE
+    RSS1 -->|HTTPS| LAMBDA1
+    RSS2 -->|HTTP| LAMBDA2
+    LAMBDA1 -->|INSERT toore XML + MD5 räsi| BRONZE
+    LAMBDA2 -->|INSERT toore XML + MD5 räsi| BRONZE
+
+    BRONZE -->|Loe uued read| AIRFLOW
+    AIRFLOW -->|INSERT parsitud artiklid| SILVER_NEWS
+    AIRFLOW -->|UPDATE viimased ID-d ja ajad| SILVER_INC
+
+    SILVER_NEWS --> METABASE
+    KEYWORDS --> METABASE
+
+    %% Stiiliklassid ja teemad
+    classDef allikas fill:#E1F5FE,stroke:#0288D1,stroke-width:2px,color:#01579B;
+    classDef lambda fill:#FFE0B2,stroke:#F57C00,stroke-width:2px,color:#E65100;
+    classDef andmed fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px,color:#1B5E20;
+    classDef airflow fill:#F3E5F5,stroke:#9C27B0,stroke-width:2px,color:#4A148C;
+    classDef metabase fill:#FCE4EC,stroke:#E91E63,stroke-width:2px,color:#880E4F;
+
+    %% Klasside omistamine elementidele
+    class RSS1,RSS2 allikas;
+    class LAMBDA1,LAMBDA2 lambda;
+    class BRONZE,SILVER_NEWS,SILVER_INC,KEYWORDS andmed;
+    class AIRFLOW airflow;
+    class METABASE metabase;
+    
+    %% Subgraphide stiilid
+    style ALLIKAD fill:#F4F8FA,stroke:#B0BEC5,stroke-width:1px,stroke-dasharray: 5 5,color:#37474F
+    style INGEST fill:#FFF8F1,stroke:#FFE0B2,stroke-width:1px,stroke-dasharray: 5 5,color:#E65100
+    style STORAGE fill:#F4FAF5,stroke:#C8E6C9,stroke-width:1px,stroke-dasharray: 5 5,color:#1B5E20
+    style TRANS fill:#FAF5FB,stroke:#E1BEE7,stroke-width:1px,stroke-dasharray: 5 5,color:#4A148C
+    style VISUAL fill:#FFF5F8,stroke:#F8BBD0,stroke-width:1px,stroke-dasharray: 5 5,color:#880E4F
 ```
+
 
 Projekti andmevoog on jagatud kaheks eraldiseisvaks etapiks (Separation of Concerns):
 
