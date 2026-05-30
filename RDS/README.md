@@ -19,11 +19,14 @@ Amazon RDS PostgreSQL andmebaas on projekti keskne andmehoidla. Andmebaas kasuta
 Andmebaas `db_news` kasutab kolme skeemi:
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 graph LR
-    DB[("db_news")]
-    DB --- B["bronze — toored sisendandmed"]
-    DB --- S["silver — puhastatud ja struktureeritud andmed"]
-    DB --- G["gold — reserveeritud, agregeeritud ärianalüütika"]
+    subgraph RDS
+        DB[("db_news")]
+        DB --- B["bronze — toored sisendandmed"]
+        DB --- S["silver — puhastatud ja struktureeritud andmed"]
+        DB --- G["gold — reserveeritud, agregeeritud ärianalüütika"]
+    end
 ```
 
 ### Bronze kiht — `bronze.raw`
@@ -80,6 +83,7 @@ Märksõnade tabel teksti analüüsiks ja stoppsõnade filtreerimiseks:
 ## Tabelite seosed
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 erDiagram
     "bronze.raw" {
         BIGSERIAL id PK

@@ -20,30 +20,32 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 ## Andmevoog
 
 ```mermaid
-flowchart TD
-    subgraph ALLIKAD["Uudistevood (Välissüsteemid)"]
-        RSS1["ERR RSS voog"]
-        RSS2["Äripäev RSS voog"]
-    end
-
-    subgraph INGEST["AWS Cloud"]
-        LAMBDA1["AWS Lambda: rss-fetcher-err"]
-        LAMBDA2["AWS Lambda: rss-fetcher-aripaev"]
-        subgraph TRANS["AWS EC2 (Apache Airflow)"]
-            AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver"]
+%%{init: {'theme': 'neutral'}}%%
+flowchart LR
+    subgraph PROJECT["Meediakriiside analüütika"]
+        subgraph ALLIKAD["Uudistevood (Välissüsteemid)"]
+            RSS1["ERR RSS voog"]
+            RSS2["Äripäev RSS voog"]
         end
-            subgraph STORAGE["AWS RDS PostgreSQL"]
-        BRONZE[("bronze.raw")]
-        SILVER_NEWS[("silver.news")]
-        SILVER_INC[("silver.news_incremental")]
-        KEYWORDS[("silver.keywords")]
+
+        subgraph INGEST["AWS Cloud"]
+            LAMBDA1["AWS Lambda: rss-fetcher-err"]
+            LAMBDA2["AWS Lambda: rss-fetcher-aripaev"]
+            subgraph TRANS["AWS EC2 (Apache Airflow)"]
+                AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver"]
+            end
+                subgraph STORAGE["AWS RDS PostgreSQL"]
+            BRONZE[("bronze.raw")]
+            SILVER_NEWS[("silver.news")]
+            SILVER_INC[("silver.news_incremental")]
+            KEYWORDS[("silver.keywords")]
+            end
+        end
+
+        subgraph VISUAL["Ettevõtte sise võrk"]
+            METABASE["Metabase<br>Dashboardid ja analüüs"]
         end
     end
-
-    subgraph VISUAL["Ettevõtte sisevõrk"]
-        METABASE["Metabase<br>Dashboardid ja analüüs"]
-    end
-
     RSS1 -->|HTTPS| LAMBDA1
     RSS2 -->|HTTP| LAMBDA2
     LAMBDA1 -->|INSERT toore XML + MD5 räsi| BRONZE
@@ -97,6 +99,7 @@ Inkrementaalseks laadimiseks kasutatakse `latest_bronze_id` veergu `silver.news_
 ## Praegune andmebaasi olem-seose mudel (ERD)
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 erDiagram
     "bronze.raw" {
         BIGSERIAL id PK

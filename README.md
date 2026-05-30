@@ -14,18 +14,20 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 ## Arhitektuur
 
 ```mermaid
-flowchart TD
-    RSS1["ERR RSS voog"]
-    RSS2["Äripäev RSS voog"]
-    AIRFLOW["Apache Airflow"]
+%%{init: {'theme': 'neutral'}}%%
+flowchart LR
+    subgraph PROJECT[Meediakriiside analüütika]
+        RSS1["ERR RSS voog"]
+        RSS2["Äripäev RSS voog"]
+        AIRFLOW["Apache Airflow"]
 
-    RSS1 -->|HTTPS| LAMBDA["AWS Lambda"]
-    RSS2 -->|HTTP| LAMBDA["AWS Lambda"]
-    LAMBDA --> RDS[("Amazon RDS PostgreSQL")]
-    AIRFLOW -->RDS
-    RDS --> AIRFLOW
-
-    RDS --> METABASE[("Metabase")]
+        RSS1 -->|HTTPS| LAMBDA["AWS Lambda"]
+        RSS2 -->|HTTP| LAMBDA["AWS Lambda"]
+        LAMBDA --> RDS[("Amazon RDS PostgreSQL")]
+        AIRFLOW -->RDS
+        RDS --> AIRFLOW
+        RDS --> METABASE[("Metabase")]
+    end
 
     %% Stiiliklassid ja teemad
     classDef allikas fill:#E1F5FE,stroke:#0288D1,stroke-width:2px,color:#01579B;
