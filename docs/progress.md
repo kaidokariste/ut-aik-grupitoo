@@ -28,7 +28,7 @@ Esimene visuaal:
 
 ## Kontrollpunkt
 
-**Märkus infrastruktuuri kohta:** Projekti komponendid on hetkel hajutatud (Sissevõtt toimub AWS Lambda abil, andmed kogunevad AWS RDS PostgreSQL andmebaasi, Airflow asub AWS EC2 virtuaalmasinas ning Metabase asub sisevõrgus). Seetõttu ei ole projekti toimivust kolmandal osapoolel lokaalselt lihtne käivitada, samuti pole ühe käsuga ülesseadmine olnud eesmärgiks.
+**Märkus infrastruktuuri kohta:** Projekti komponendid on hetkel hajutatud (sissevõtt toimub AWS Lambda abil, andmed kogunevad AWS RDS PostgreSQL andmebaasi, Airflow asub AWS EC2 virtuaalmasinas ning Metabase asub sisevõrgus). Seetõttu ei ole projekti teiste poolt lihtne käivitada, samuti pole ühe käsuga ülesseadmine olnud eesmärgiks.
 
 Kuna Airflow EC2 instantsi pidev üleval hoidmine on kulukas (AWS tasuta krediit saaks muidu enne kursuse lõppu otsa), on Airflow ja selle uued transformatsiooni DAG-id hetkel käivitamisel vastavalt vajadusele. Kogu toorandmete sissevõtt (Lambda -> `bronze.raw`) töötab aga pidevalt ja efektiivselt.
 
