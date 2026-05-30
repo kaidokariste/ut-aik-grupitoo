@@ -145,9 +145,13 @@ erDiagram
 
 | Risk | Mõju | Maandus |
 |------|------|---------|
-| Risk 1 - Uudistevoo URL-i liigutatakse | Airflow DAG peaks minema katki | Kasutaks "One failed" dagi |
-| Risk 2 - Uudistevoo struktuur muutub | DAG hakkab saama tühje tulemusi | NOT NULL piirangud andmebaasis |
-| Risk 3 - Sama uudis mitmes kategoorias | Mõned märksõnad hakkavad võimenduma | Enne dashboardi unikaalsus läbi SQL.  |
+| **Uudistevoo URL-i muutmine või kättesaamatus** | Sissevõtt (Lambda) ebaõnnestub, uued uudised ei jõua andmebaasi. | Lambda EventBridge ajastus käivitub kord tunnis. Kuna RSS-vood sisaldavad mitme viimase tunni uudiseid, katab järgmine edukas käivitus ajutised võrgutõrked. Püsiva URL-i muutuse tuvastamiseks saab seadistada CloudWatch alarmid Lambda tõrgete peale. |
+| **Uudistevoo XML struktuuri muutused** | Airflow transformatsiooni DAG-id ei suuda XML-i BeautifulSoup abil parsida või laadivad tühje/vigaseid andmeid. | Andmebaasis `silver.news` on kriitilistele väljadele (nt `title`, `news_dtime`, `link`) kehtestatud `NOT NULL` piirangud. Parsimise ebaõnnestumisel viskab transformatsiooni DAG vea, mis on Airflow veebiliideses nähtav. |
+| **Sama uudise korduv kajastamine mitmes kategoorias või duplikaadid** | Statistika ja märksõnade esinemissagedus näidikulaual on kunstlikult võimendatud. | `bronze.raw` tabelis on kasutusel unikaalsuse piirang (MD5 räsi XML-sisust) koos `ON CONFLICT DO NOTHING` loogikaga. Näidikulaua päringutes (SQL-tasemel) kasutatakse unikaalsuse filtreid (nt `DISTINCT ON` või unikaalsust läbi SQL), et vältida sama artikli topeltarvestust eri kategooriate või allikate lõikes. |
+| **Infrastruktuuri kulude ületamine (AWS RDS & EC2)** | AWS tasuta limiitide / õppekonto krediidi kiire otsasaamine enne projekti valmimist või kaitsmist. | Airflow EC2 virtuaalmasinat ja sellega seotud teenuseid hoitakse aktiivsena vaid vajadusel (nt testimise ajal ja testgraafiku jooksutamisel). Andmete pidev sissevõtt toimub odavate serverless Lambda funktsioonidega, mille käivitusmaht ja ressursikulu on minimaalsed. |
+| **RDS andmebaasi ühenduste ammendumine (Connection exhaustion)** | Lambda või Airflow ei saa andmebaasiga ühendust, tekitades tõrkeid andmete salvestamisel või töötlemisel. | Lambda koodis suletakse andmebaasiühendus (`pg8000.dbapi.connect`) alati `finally` plokis. Airflow poolt kasutatav `PostgresHook` haldab ühenduste elutsüklit automaatselt. |
+| **Märksõnade tuvastamise ebatäpsus (valepositiivsed tulemused)** | Näidikutabelites kuvatakse ebaolulisi trende (nt sõna "USA" esineb meelelahutusuudises või spordiuudises, mis ei ole geopoliitilise kriisiga seotud). | Uudiste filtreerimine kategooriate alusel (`EXCLUDE_TOPICS`) nii ERR-i kui ka Äripäeva puhul transformatsiooni etapis. Lisaks kasutatakse näidikulaual dünaamilisi filtreid ja stoppsõnade/märksõnade nimekirja (`silver.keywords`), mida saab jooksvalt täiendada ilma andmevoogu taaskäivitamata. |
+
 
 ## Privaatsus ja turve
 
