@@ -134,9 +134,9 @@ def transform_and_load(**context):
                                          ON CONFLICT (news_id, category) DO NOTHING"""
                             cur.execute(sql_cat, (news_id, cat))
 
-                    dates.append(isodate)
-                    inserted_count += 1
-                    logging.info(f"Salvestatud: {title}")
+                        dates.append(isodate)
+                        inserted_count += 1
+                        logging.info(f"Salvestatud: {title}")
 
         # Uuendame benchmarke
         currentbenchmark = ''

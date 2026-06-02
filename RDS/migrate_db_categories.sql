@@ -3,7 +3,7 @@
 -- 1. Loo vahetabel
 CREATE TABLE IF NOT EXISTS silver.news_categories (
     news_id  BIGINT REFERENCES silver.news(id) ON DELETE CASCADE,
-    category VARCHAR NOT NULL,
+    category TEXT NOT NULL,
     PRIMARY KEY (news_id, category)
 );
 

@@ -82,8 +82,8 @@ def get_err_news():
                         sql_cat = """INSERT INTO silver.news_categories (news_id, category) VALUES (%s, %s) ON CONFLICT (news_id, category) DO NOTHING"""
                         cur.execute(sql_cat, (news_id, cat))
 
-                dates.append(isodate)
-                print(f"Salvestatud: {title}")
+                    dates.append(isodate)
+                    print(f"Salvestatud: {title}")
 
         if dates:
             currentbenchmark = max(dates)
@@ -154,8 +154,8 @@ def get_aripaev_news():
                         sql_cat = """INSERT INTO silver.news_categories (news_id, category) VALUES (%s, %s) ON CONFLICT (news_id, category) DO NOTHING"""
                         cur.execute(sql_cat, (news_id, cat))
 
-                dates.append(isodate)
-                print(f"Salvestatud: {title}")
+                    dates.append(isodate)
+                    print(f"Salvestatud: {title}")
 
         if dates:
             currentbenchmark = max(dates)
