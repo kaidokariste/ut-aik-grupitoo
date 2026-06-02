@@ -25,20 +25,23 @@ Airflow on paigaldatud Docker Compose abil (`docker-compose.yaml`) ning kasutab 
 | `airflow-worker` | Celery töötaja |
 | `airflow-triggerer` | Trigerite haldur |
 
-### DAG: `airflow_etl_dag_news`
+### DAG-id: Uudiste transformatsioonid (Transform & Load)
 
-DAG-id käivituvad **iga tunni tagant** (`0 * * * *`):
+Projekti transformatsiooni loogika on jaotatud kolmeks eraldi transformatsiooni DAG-iks, mis töötlevad andmeid `bronze` kihist `silver` kihti:
 
-1. **`processing_err_news`** — tõmbab ERR RSS voost uudised
-2. **`processing_aripaev_news`** — tõmbab Äripäeva RSS voost uudised
+1. **`transform_err_bronze_to_silver`** — loeb toored ERR andmed skeemist `bronze`, parsib artiklid, filtreerib välja soovimatud kategooriad ning salvestab unikaalsed uudised ja kategooriad `silver` kihis.
+2. **`transform_aripaev_bronze_to_silver`** — loeb toored Äripäeva andmed skeemist `bronze`, parsib artiklid, filtreerib välja soovimatud kategooriad ning salvestab unikaalsed uudised ja kategooriad `silver` kihis.
+3. **`transform_postimees_bronze_to_silver`** — loeb toored Postimehe andmed skeemist `bronze`, parsib artiklid, filtreerib välja soovimatud kategooriad ning salvestab unikaalsed uudised ja kategooriad `silver` kihis.
 
-Mõlemad taskid:
-- Laevad RSS XML-i alla
-- Parsivad artiklid BeautifulSoup abil
-- Filtreerivad välja soovimatud kategooriad (nt Teater, Galerii, Saated)
-- Kasutavad **inkrementaalset laadimist** — salvestavad ainult uudised, mis on uuemad kui eelmise käivituse ajatempel (`silver.news_incremental` tabel)
-- Sisestavad uued uudised `silver.news` tabelisse PostgreSQL (RDS) andmebaasis
-- Kasutavad Airflow `PostgresHook` ühendust nimega `aws-postgres`
+Märkus: Vanem monoliitne DAG (`airflow-etl-dag-news.py`) on märgitud aegunuks (deprecated).
+
+Kõik DAG-id:
+- Loevad uusi toorandmeid `bronze.raw` tabelist, mis on lisatud pärast viimast töötlust.
+- Parsivad XML artiklid BeautifulSoup abil.
+- Filtreerivad välja soovimatud kategooriad (nt Teater, Galerii, Saated, Digiajakirjad jne).
+- Kasutavad **inkrementaalset laadimist** — kontrollivad viimati töödeldud `bronze.raw.id` väärtust `silver.news_incremental` tabelis ja uuendavad seda jooksvalt.
+- Sisestavad uued uudised `silver.news` tabelisse ning seovad need kategooriatega `silver.news_categories` tabelis.
+- Kasutavad Airflow `PostgresHook` ühendust nimega `aws-postgres`.
 
 ![Airflow DAG-ide nimekiri](airflow2.png)
 
@@ -49,12 +52,15 @@ Mõlemad taskid:
 ```
 EC2/
 ├── airflow/
-│   ├── airflow-etl-dag-news.py   # Airflow DAG definitsioon
+│   ├── airflow-etl-dag-news.py   # Airflow DAG (aegunud monoliit)
+│   ├── airflow-transform-err.py  # ERR transformatsiooni DAG
+│   ├── airflow-transform-aripaev.py # Äripäev transformatsiooni DAG
+│   ├── airflow-transform-postimees.py # Postimees transformatsiooni DAG
 │   ├── extract_news.py           # Standalone uudiste ekstraktimise skript
 │   ├── docker-compose.yaml       # Airflow Docker Compose konfiguratsioon
 │   ├── airflow_pg_hook_example.txt
 │   ├── .env.example              # Keskkonnamuutujate näidis
-|   └── requirements.txt              # Pythoni sõltuvused
+│   └── requirements.txt          # Pythoni sõltuvused
 ├── airflow1.png                  # EC2 instansi kuvatõmmis
 ├── airflow2.png                  # Airflow DAG-ide kuvatõmmis
 ├── airflow3.png                  # DAG käivituste ajaloo kuvatõmmis

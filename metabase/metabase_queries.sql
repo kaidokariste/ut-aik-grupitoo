@@ -1,36 +1,39 @@
 -- Uudiste jaotus allika/kategooria järgi
 
 SELECT
-  source,
-  category,
-  news_dtime::DATE,
-  COUNT(distinct title) AS count
-FROM silver.news
-GROUP BY source, category, news_dtime::DATE
-ORDER BY source, count DESC;
+  n.source,
+  c.category,
+  n.news_dtime::DATE,
+  COUNT(distinct n.title) AS count
+FROM silver.news n
+LEFT JOIN silver.news_categories c ON n.id = c.news_id
+GROUP BY n.source, c.category, n.news_dtime::DATE
+ORDER BY n.source, count DESC;
 ------------------------------------------------------------------------------------------------------------------------
 -- Maailmasündmuste jaotus kategooriate järgi
 
 SELECT
-  category,
+  c.category,
   CASE
-    WHEN title ILIKE '%usa%' THEN 'USA'
-    WHEN title ILIKE '%venemaa%' THEN 'Venemaa'
-    WHEN title ILIKE '%Iraan%' THEN 'Iraan'
-    WHEN title ILIKE '%hiina%' THEN 'Hiina'
+    WHEN n.title ILIKE '%usa%' THEN 'USA'
+    WHEN n.title ILIKE '%venemaa%' THEN 'Venemaa'
+    WHEN n.title ILIKE '%Iraan%' THEN 'Iraan'
+    WHEN n.title ILIKE '%hiina%' THEN 'Hiina'
     ELSE 'Other'
   END AS keyword,
-  COUNT(DISTINCT title) AS count
-FROM silver.news
-GROUP BY category, keyword
-ORDER BY category, count DESC;
+  COUNT(DISTINCT n.title) AS count
+FROM silver.news n
+LEFT JOIN silver.news_categories c ON n.id = c.news_id
+GROUP BY c.category, keyword
+ORDER BY c.category, count DESC;
 ------------------------------------------------------------------------------------------------------------------------
 -- Top 10 kategooriad
 
-SELECT category AS kategooria,
-       count(distinct title) AS kokku
-FROM silver.news
-GROUP BY category
+SELECT c.category AS kategooria,
+       count(distinct n.title) AS kokku
+FROM silver.news n
+LEFT JOIN silver.news_categories c ON n.id = c.news_id
+GROUP BY c.category
 ORDER BY count(*) DESC;
 ------------------------------------------------------------------------------------------------------------------------
 -- Top 10 märksõna

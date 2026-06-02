@@ -4,12 +4,13 @@ AWS Lambda funktsioonid tõmbavad RSS voogudest toored XML-andmed ja salvestavad
 
 ## Funktsioonid
 
-Projektis on kaks Lambda funktsiooni:
+Projektis on kolm Lambda funktsiooni:
 
 | Funktsioon | Allikas |
 |-----------|---------|
 | `rss-fetcher-err` | [ERR RSS](https://www.err.ee/rss) |
 | `rss-fetcher-aripaev` | [Äripäev RSS](http://feeds.feedburner.com/aripaev-rss) |
+| `rss-fetcher-postimees` | [Postimees RSS](https://postimees.ee/rss) |
 
 ![Lambda funktsioonide nimekiri](lambda1.png)
 
@@ -47,6 +48,7 @@ Lambda funktsioonid käivitatakse automaatselt Amazon EventBridge Scheduler abil
 |---------|---------------|------|
 | `ARIPAEV_fetch` | `rss-fetcher-aripaev` | LAMBDA_Invoke |
 | `ERR_fetch` | `rss-fetcher-err` | LAMBDA_Invoke |
+| `POSTIMEES_fetch` | `rss-fetcher-postimees` | LAMBDA_Invoke |
 
 ![EventBridge ajastused](lambda2.png)
 
@@ -57,7 +59,7 @@ Lambda salvestab toored RSS XML-andmed `bronze.raw` tabelisse:
 | Veerg | Tüüp | Kirjeldus |
 |-------|------|-----------|
 | `id` | BIGSERIAL | Automaatne primaarvõti |
-| `source` | TEXT | Allika nimi (ERR / ÄRIPÄEV) |
+| `source` | TEXT | Allika nimi (ERR / ÄRIPÄEV / POSTIMEES) |
 | `inserted_at` | TIMESTAMPTZ | Sisestamise ajatempel |
 | `hash` | TEXT (UNIQUE) | MD5 räsi deduplikatsiooniks |
 | `body` | TEXT | Toore RSS XML sisu |

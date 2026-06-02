@@ -26,17 +26,20 @@ flowchart LR
         subgraph ALLIKAD["Uudistevood (Välissüsteemid)"]
             RSS1["ERR RSS voog"]
             RSS2["Äripäev RSS voog"]
+            RSS3["Postimees RSS voog"]
         end
 
         subgraph INGEST["AWS Cloud"]
             LAMBDA1["AWS Lambda: rss-fetcher-err"]
             LAMBDA2["AWS Lambda: rss-fetcher-aripaev"]
+            LAMBDA3["AWS Lambda: rss-fetcher-postimees"]
             subgraph TRANS["AWS EC2 (Apache Airflow)"]
-                AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver"]
+                AIRFLOW["Airflow: <br>transform_err_bronze_to_silver<br>transform_aripaev_bronze_to_silver<br>transform_postimees_bronze_to_silver"]
             end
                 subgraph STORAGE["AWS RDS PostgreSQL"]
             BRONZE[("bronze.raw")]
             SILVER_NEWS[("silver.news")]
+            SILVER_CATS[("silver.news_categories")]
             SILVER_INC[("silver.news_incremental")]
             KEYWORDS[("silver.keywords")]
             end
@@ -48,14 +51,18 @@ flowchart LR
     end
     RSS1 -->|HTTPS| LAMBDA1
     RSS2 -->|HTTP| LAMBDA2
+    RSS3 -->|HTTPS| LAMBDA3
     LAMBDA1 -->|INSERT toore XML + MD5 räsi| BRONZE
     LAMBDA2 -->|INSERT toore XML + MD5 räsi| BRONZE
+    LAMBDA3 -->|INSERT toore XML + MD5 räsi| BRONZE
 
     BRONZE -->|Loe uued read| AIRFLOW
     AIRFLOW -->|INSERT parsitud artiklid| SILVER_NEWS
+    AIRFLOW -->|INSERT kategooriad| SILVER_CATS
     AIRFLOW -->|UPDATE viimased ID-d ja ajad| SILVER_INC
 
     SILVER_NEWS --> METABASE
+    SILVER_CATS --> METABASE
     KEYWORDS --> METABASE
 
     %% Stiiliklassid ja teemad
@@ -66,9 +73,9 @@ flowchart LR
     classDef metabase fill:#FCE4EC,stroke:#E91E63,stroke-width:2px,color:#880E4F;
 
     %% Klasside omistamine elementidele
-    class RSS1,RSS2 allikas;
-    class LAMBDA1,LAMBDA2 lambda;
-    class BRONZE,SILVER_NEWS,SILVER_INC,KEYWORDS andmed;
+    class RSS1,RSS2,RSS3 allikas;
+    class LAMBDA1,LAMBDA2,LAMBDA3 lambda;
+    class BRONZE,SILVER_NEWS,SILVER_CATS,SILVER_INC,KEYWORDS andmed;
     class AIRFLOW airflow;
     class METABASE metabase;
     
@@ -84,7 +91,7 @@ flowchart LR
 Projekti andmevoog on jagatud kaheks eraldiseisvaks etapiks (Separation of Concerns):
 
 1. **Sissevõtt (Extract):** AWS Lambda funktsioonid pärinevad RSS voogudest andmeid ja salvestavad toore XML-i otse RDS andmebaasi `bronze.raw` tabelisse. Kuna Lambda on serverless ja tasuta limiidid/kulud on minimaalsed, saab seda jooksutada tihedalt. See tagab, et me ei kaota andmeid ka siis, kui Airflow server on maas.
-2. **Transformatsioon (Transform & Load):** Airflow DAG-id (`transform_err_bronze_to_silver` ja `transform_aripaev_bronze_to_silver`) loevad toorandmeid skeemist `bronze`, parsivad XML-i, puhastavad andmed ja laadivad need `silver.news` tabelisse. Kuna EC2 instantsi jooksutamine Airflow jaoks on kallis, hoitakse Airflow-d töös vaid vajadusel (nt testimise ajal ja käsitsi käivitamisel või tunnisel graafikul).
+2. **Transformatsioon (Transform & Load):** Airflow eraldiseisvad DAG-id (`transform_err_bronze_to_silver`, `transform_aripaev_bronze_to_silver` ja `transform_postimees_bronze_to_silver`) loevad toorandmeid skeemist `bronze`, parsivad XML-i, filtreerivad ja puhastavad andmed, ning laadivad need `silver` kihi tabelitesse. Unikaalsed artiklid laetakse tabelisse `silver.news` ja nende kategooriad seotakse eraldi vahetabelis `silver.news_categories`. Kuna EC2 instantsi jooksutamine Airflow jaoks on kallis, hoitakse Airflow-d töös vaid vajadusel (nt testimise ajal ja käsitsi käivitamisel või tunnisel graafikul).
 
 Inkrementaalseks laadimiseks kasutatakse `latest_bronze_id` veergu `silver.news_incremental` tabelis, et vältida juba töödeldud ridade uuesti parsimist.
 
@@ -93,7 +100,7 @@ Inkrementaalseks laadimiseks kasutatakse `latest_bronze_id` veergu `silver.news_
 | Kiht | Roll |
 |------|------|
 | `bronze` | Hoiab allika toorandmeid töötlemata kujul (`bronze.raw` tabelis). |
-| `silver` | Hoiab transformeeritud, parsitud ja filtreeritud andmeid (`silver.news`, stoppsõnu/märksõnu `silver.keywords`). |
+| `silver` | Hoiab transformeeritud, parsitud ja filtreeritud andmeid (`silver.news`, kategooriaid `silver.news_categories`, stoppsõnu/märksõnu `silver.keywords`). |
 | `gold` | Puhastatud, rikastatud andmestik (agregeeritud vaated ja tabelid ärianalüütika jaoks). |
 
 ## Praegune andmebaasi olem-seose mudel (ERD)
@@ -112,10 +119,13 @@ erDiagram
         BIGINT id PK
         VARCHAR source
         TIMESTAMPTZ news_dtime
-        VARCHAR category
         VARCHAR title
         TEXT description
         VARCHAR link
+    }
+    "silver.news_categories" {
+        BIGINT news_id FK
+        VARCHAR category
     }
     "silver.news_incremental" {
         VARCHAR(10) source
@@ -131,6 +141,7 @@ erDiagram
     "bronze.raw" ||--o{ "silver.news_incremental" : "viimati töödeldud rida"
     "silver.news_incremental" ||--o{ "silver.news" : "jälgib viimast laadimist"
     "silver.keywords" }|--|{ "silver.news" : "teksti analüüs"
+    "silver.news" ||--o{ "silver.news_categories" : "kategooriad"
 ```
 
 ## Tööjaotus
@@ -153,7 +164,7 @@ erDiagram
 | **Sama uudise korduv kajastamine mitmes kategoorias või duplikaadid** | Statistika ja märksõnade esinemissagedus näidikulaual on kunstlikult võimendatud. | `bronze.raw` tabelis on kasutusel unikaalsuse piirang (MD5 räsi XML-sisust) koos `ON CONFLICT DO NOTHING` loogikaga. Näidikulaua päringutes (SQL-tasemel) kasutatakse unikaalsuse filtreid (nt `DISTINCT ON` või unikaalsust läbi SQL), et vältida sama artikli topeltarvestust eri kategooriate või allikate lõikes. |
 | **Infrastruktuuri kulude ületamine (AWS RDS & EC2)** | AWS tasuta limiitide / õppekonto krediidi kiire otsasaamine enne projekti valmimist või kaitsmist. | Airflow EC2 virtuaalmasinat ja sellega seotud teenuseid hoitakse aktiivsena vaid vajadusel (nt testimise ajal ja testgraafiku jooksutamisel). Andmete pidev sissevõtt toimub odavate serverless Lambda funktsioonidega, mille käivitusmaht ja ressursikulu on minimaalsed. |
 | **RDS andmebaasi ühenduste ammendumine (Connection exhaustion)** | Lambda või Airflow ei saa andmebaasiga ühendust, tekitades tõrkeid andmete salvestamisel või töötlemisel. | Lambda koodis suletakse andmebaasiühendus (`pg8000.dbapi.connect`) alati `finally` plokis. Airflow poolt kasutatav `PostgresHook` haldab ühenduste elutsüklit automaatselt. |
-| **Märksõnade tuvastamise ebatäpsus (valepositiivsed tulemused)** | Näidikutabelites kuvatakse ebaolulisi trende (nt sõna "USA" esineb meelelahutusuudises või spordiuudises, mis ei ole geopoliitilise kriisiga seotud). | Uudiste filtreerimine kategooriate alusel (`EXCLUDE_TOPICS`) nii ERR-i kui ka Äripäeva puhul transformatsiooni etapis. Lisaks kasutatakse näidikulaual dünaamilisi filtreid ja stoppsõnade/märksõnade nimekirja (`silver.keywords`), mida saab jooksvalt täiendada ilma andmevoogu taaskäivitamata. |
+| **Märksõnade tuvastamise ebatäpsus (valepositiivsed tulemused)** | Näidikutabelites kuvatakse ebaolulisi trende (nt sõna "USA" esineb meelelahutusuudises või spordiuudises, mis ei ole geopoliitilise kriisiga seotud). | Uudiste filtreerimine kategooriate alusel (`EXCLUDE_TOPICS`) nii ERR-i, Äripäeva kui ka Postimehe puhul transformatsiooni etapis. Lisaks kasutatakse näidikulaual dünaamilisi filtreid ja stoppsõnade/märksõnade nimekirja (`silver.keywords`), mida saab jooksvalt täiendada ilma andmevoogu taaskäivitamata. |
 
 
 ## Privaatsus ja turve

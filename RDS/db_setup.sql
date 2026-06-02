@@ -11,10 +11,9 @@ CREATE TABLE silver.news
 (
     source      VARCHAR,
     news_dtime  TIMESTAMP WITH TIME ZONE,
-    category    VARCHAR,
     title       VARCHAR,
     description TEXT,
-    link        VARCHAR
+    link        VARCHAR UNIQUE
 );
 
 CREATE TABLE silver.news_incremental
@@ -23,11 +22,20 @@ CREATE TABLE silver.news_incremental
     latest_news_dtime timestamptz
 );
 INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('ERR','2026-01-01 01:00:00.000000 +00:00');
-INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('AP','2026-01-01 01:00:00.000000 +00:00');
+INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('ÄRIPÄEV','2026-01-01 01:00:00.000000 +00:00');
+INSERT INTO silver.news_incremental(source,latest_news_dtime) VALUES ('POSTIMEES','2026-01-01 01:00:00.000000 +00:00');
+
 
 ------------------------------
 -- Lisame tabelile surrogaatvõtme
 ALTER TABLE silver.news ADD COLUMN id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY;
+
+-- Kategooriate seostabel
+CREATE TABLE IF NOT EXISTS silver.news_categories (
+    news_id  BIGINT REFERENCES silver.news(id) ON DELETE CASCADE,
+    category VARCHAR NOT NULL,
+    PRIMARY KEY (news_id, category)
+);
 
 ------------------
 
