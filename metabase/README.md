@@ -13,7 +13,7 @@ Metabase on paigaldatud Docker Compose abil kahe teenusega:
 
 Metabase ühendub **kahte** PostgreSQL andmebaasi:
 1. **Oma metaandmebaas** (`db` teenus) — salvestab Metabase seaded, kasutajad, dashboardid
-2. **RDS andmebaas** (`host.docker.internal` kaudu) — projekti uudiste andmed (`silver.news` tabel)
+2. **RDS andmebaas** (`host.docker.internal` kaudu) — projekti uudiste andmed (`silver.news` ja `silver.news_categories` tabelid)
 
 Võrguseaded:
 - Metabase on kättesaadav pordil `${MB_PORT}` (vaikimisi 3000), seotud ainult `127.0.0.1`-ga
@@ -25,13 +25,13 @@ Võrguseaded:
 Failis `metabase_queries.sql` on defineeritud järgmised päringud dashboardi jaoks:
 
 ### 1. Uudiste jaotus allika/kategooria järgi
-Loendab unikaalsed pealkirjad allika, kategooria ja kuupäeva lõikes.
+Loendab unikaalsed pealkirjad allika, kategooria ja kuupäeva lõikes, sidudes uudised `silver.news_categories` vahetabeliga.
 
 ### 2. Maailmasündmuste jaotus kategooriate järgi
-Kategoriseerib uudised riikide järgi (USA, Venemaa, Iraan, Hiina) pealkirja märksõnade alusel.
+Kategoriseerib uudised riikide järgi (USA, Venemaa, Iraan, Hiina) pealkirja märksõnade alusel, sidudes uudised `silver.news_categories` vahetabeliga.
 
 ### 3. Top 10 kategooriad
-Näitab kõige populaarsemaid uudiskategooriaid.
+Näitab kõige populaarsemaid uudiskategooriaid, sidudes uudised `silver.news_categories` vahetabeliga.
 
 ### 4. Top 10 märksõna
 Analüüsib uudiste kirjeldusi, eemaldab stoppsõnad (`silver.keywords` tabelist) ja leiab kõige sagedamini esinevad sisukad sõnad.

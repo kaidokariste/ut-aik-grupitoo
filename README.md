@@ -8,7 +8,7 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 
 **Mõõdikud:**
 
-1. Millise osakaalu kogu meediamahtudest moodustavad sihtriikidega (USA, Iraan, Iisrael, Ukraina, Venemaa) ja nendega seotud isikutega seonduvad uudised ERR-i ning Äripäeva päeva lõikes. Kogume valimi märksõnu nagu "USA, Trump, Iraan ... jne." Loeme kokku uudised, mis päevas sisaldavad neid sõnu ja vaatame kogusuhet päevastesse uudistesse.
+1. Millise osakaalu kogu meediamahtudest moodustavad sihtriikidega (USA, Iraan, Iisrael, Ukraina, Venemaa) ja nendega seotud isikutega seonduvad uudised ERR-i, Äripäeva ning Postimehe päeva lõikes. Kogume valimi märksõnu nagu "USA, Trump, Iraan ... jne." Loeme kokku uudised, mis päevas sisaldavad neid sõnu ja vaatame kogusuhet päevastesse uudistesse.
 2. Millistes temaatilistes kategooriates ja rubriikides nimetatud meediakanalid antud geopoliitilisi konflikte kajastavad? Uudistel on olemas kategooriad. Grupeerime ülalnimetatud märksõnadega uudised neisse kategooriatesse.
 
 ## Arhitektuur
@@ -19,10 +19,12 @@ flowchart LR
     subgraph PROJECT[Meediakriiside analüütika]
         RSS1["ERR RSS voog"]
         RSS2["Äripäev RSS voog"]
+        RSS3["Postimees RSS voog"]
         AIRFLOW["Apache Airflow"]
 
         RSS1 -->|HTTPS| LAMBDA["AWS Lambda"]
         RSS2 -->|HTTP| LAMBDA["AWS Lambda"]
+        RSS3 -->|HTTPS| LAMBDA["AWS Lambda"]
         LAMBDA --> RDS[("Amazon RDS PostgreSQL")]
         AIRFLOW -->RDS
         RDS --> AIRFLOW
@@ -37,7 +39,7 @@ flowchart LR
     classDef metabase fill:#FCE4EC,stroke:#E91E63,stroke-width:2px,color:#880E4F;
 
     %% Klasside omistamine elementidele
-    class RSS1,RSS2 allikas;
+    class RSS1,RSS2,RSS3 allikas;
     class LAMBDA lambda;
     class RDS andmed;
     class METABASE metabase;
@@ -53,13 +55,14 @@ Täpsem joonis ja kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
 |---------|------|--------------|------|
 | [ERR RSS](https://www.err.ee/rss) | RSS | Jah, iga tund | Põhiandmevoog |
 | [Äripäev RSS](http://feeds.feedburner.com/aripaev-rss) | RSS | Jah, iga tund  | Põhiandmevoog |
+| [Postimees RSS](https://postimees.ee/rss) | RSS | Jah, iga tund  | Põhiandmevoog |
 
 ## Stack
 
 | Komponent | Tööriist | Kirjeldus |
 |-----------|---------|-----------|
 | Sissevõtt (Extract) | AWS Lambda | Tõmbab RSS voo ja salvestab toore XML sisu `bronze.raw` tabelisse |
-| Transformatsioon (Transform & Load) | Airflow (Python & SQL) | Eraldi DAG-id kummallegi allikale (ERR ja Äripäev), loevad `bronze` kiht ja kirjutavad `silver` kihti |
+| Transformatsioon (Transform & Load) | Airflow (Python & SQL) | Eraldi DAG-id allikatele (ERR, Äripäev, Postimees), loevad `bronze` kihist ja kirjutavad `silver` kihi tabelitesse |
 | Andmehoidla | Amazon RDS PostgreSQL | Medaljonarhitektuur (bronze -> silver -> gold) |
 | Näidikulaud | Metabase | Ärianalüütika ja visuaalid |
 | Orkestreerimine | Airflow | Käivitab transformatsiooni (hetkel testimisel, kulude säästmiseks käsitsi või tunnisel graafikul) |
@@ -74,7 +77,7 @@ Projekti andmebaas asub Amazon RDS-is (mootor: PostgreSQL, klass: `db.t4g.micro`
 - Täpsem info andmebaasi struktuuri kohta asub kataloogis [RDS/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/README.md).
 
 ### 2. Sissevõtt (AWS Lambda & Amazon EventBridge)
-Uudistevoogude tõmbamiseks ja toorandmete salvestamiseks `bronze.raw` tabelisse kasutatakse kahte serverless AWS Lambda funktsiooni: `rss-fetcher-err` ja `rss-fetcher-aripaev`.
+Uudistevoogude tõmbamiseks ja toorandmete salvestamiseks `bronze.raw` tabelisse kasutatakse kolme serverless AWS Lambda funktsiooni: `rss-fetcher-err`, `rss-fetcher-aripaev` ja `rss-fetcher-postimees`.
 - Lambda funktsioonide kood asub failis [lambda_function.py](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/lambda_function.py).
 - Funktsioonide käivitamist reguleerib Amazon EventBridge Scheduler kord tunnis.
 - Rohkem detaile sissevõtu seadistamise kohta leiab juhendist [lambda/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/README.md).
@@ -181,14 +184,17 @@ Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
 │   ├── README.md             ← Airflow seadistamine EC2-s
 │   └── airflow/
 │       ├── .env.example
-│       ├── airflow-etl-dag-news.py  ← Airflow DAG definitsioon
+│       ├── airflow-etl-dag-news.py  ← Airflow DAG (monoliitne, aegunud)
+│       ├── airflow-transform-err.py  ← ERR transformatsiooni DAG
+│       ├── airflow-transform-aripaev.py  ← Äripäev transformatsiooni DAG
+│       ├── airflow-transform-postimees.py  ← Postimees transformatsiooni DAG
 │       ├── docker-compose.yaml
 │       ├── extract_news.py   ← Uudiste ETL standalone skript
 │       ├── requirements.txt
 │       └── airflow_pg_hook_example.txt
 ├── lambda/
 │   ├── README.md             ← Sissevõtu Lambda funktsioonide juhend
-│   └── lambda_function.py    ← Lambda funktsiooni kood (ERR ja Äripäev)
+│   └── lambda_function.py    ← Lambda funktsiooni kood (ERR, Äripäev, Postimees)
 ├── metabase/
 │   ├── .env.example
 │   ├── README.md             ← Metabase dashboardi juhend
@@ -197,14 +203,19 @@ Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
 └── RDS/
     ├── README.md             ← RDS andmebaasi ja tabelite seosed (ERD)
     ├── bronze.sql            ← Bronze kihi tabeli loomine
-    └── db_setup.sql          ← Andmebaasi skeemide ja tabelite loomise skript
+    ├── db_setup.sql          ← Andmebaasi skeemide ja tabelite loomise skript
+    └── migrate_db_categories.sql ← Kategooriate suhte migreerimine eraldi vahetabelisse
 ```
 
 ### Olulisemad failid:
 - **Dokumentatsioon**: [arhitektuur.md](file:///c:/Users/arnop/ut-aik-grupitoo/docs/arhitektuur.md), [progress.md](file:///c:/Users/arnop/ut-aik-grupitoo/docs/progress.md)
 - **Sissevõtt (AWS Lambda)**: [lambda_function.py](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/lambda_function.py)
-- **ETL & Orkestreerimine (Airflow)**: [airflow-etl-dag-news.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-etl-dag-news.py), [extract_news.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/extract_news.py)
-- **Andmebaas (PostgreSQL RDS)**: [db_setup.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/db_setup.sql), [bronze.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/bronze.sql)
+- **ETL & Orkestreerimine (Airflow)**: 
+  - [airflow-transform-err.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-transform-err.py)
+  - [airflow-transform-aripaev.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-transform-aripaev.py)
+  - [airflow-transform-postimees.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-transform-postimees.py)
+  - [extract_news.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/extract_news.py)
+- **Andmebaas (PostgreSQL RDS)**: [db_setup.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/db_setup.sql), [bronze.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/bronze.sql), [migrate_db_categories.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/migrate_db_categories.sql)
 - **Näidikulaud (Metabase)**: [metabase_queries.sql](file:///c:/Users/arnop/ut-aik-grupitoo/metabase/metabase_queries.sql)
 
 ## Kokkuvõte, puudused ja võimalikud edasiarendused

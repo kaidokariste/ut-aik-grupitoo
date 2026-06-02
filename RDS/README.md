@@ -50,12 +50,22 @@ Parsitud ja puhastatud uudiste tabel:
 | Veerg | Tüüp | Kirjeldus |
 |-------|------|-----------|
 | `id` | BIGINT PK (IDENTITY) | Surrogaatvõti |
-| `source` | VARCHAR | Allikas (ERR / AP) |
+| `source` | VARCHAR | Allikas (ERR / AP / PM) |
 | `news_dtime` | TIMESTAMPTZ | Uudise avaldamise aeg |
-| `category` | VARCHAR | Uudise kategooria |
 | `title` | VARCHAR | Pealkiri |
 | `description` | TEXT | Uudise kirjeldus/lühikokkuvõte |
 | `link` | VARCHAR | Link originaaluudisele |
+
+### Silver kiht — `silver.news_categories`
+
+Uudiste ja kategooriate seostabel (vahetabel):
+
+| Veerg | Tüüp | Kirjeldus |
+|-------|------|-----------|
+| `news_id` | BIGINT FK | Viide uudisele (`silver.news.id`), ON DELETE CASCADE |
+| `category` | VARCHAR | Uudise kategooria (nt. Sport, Majandus jne) |
+
+Primaarvõti koosneb mõlemast veerust: `(news_id, category)`.
 
 ### Silver kiht — `silver.news_incremental`
 
@@ -63,7 +73,7 @@ Inkrementaalse laadimise jälgimistabel:
 
 | Veerg | Tüüp | Kirjeldus |
 |-------|------|-----------|
-| `source` | VARCHAR(10) | Allikas (ERR / AP) |
+| `source` | VARCHAR(10) | Allikas (ERR / AP / PM) |
 | `latest_news_dtime` | TIMESTAMPTZ | Viimase töödeldud uudise ajatempel |
 | `latest_bronze_id` | BIGINT | Viimati töödeldud `bronze.raw` rea ID |
 
@@ -97,10 +107,14 @@ erDiagram
         BIGINT id PK
         VARCHAR source
         TIMESTAMPTZ news_dtime
-        VARCHAR category
         VARCHAR title
         TEXT description
         VARCHAR link
+    }
+
+    "silver.news_categories" {
+        BIGINT news_id FK
+        VARCHAR category
     }
 
     "silver.news_incremental" {
@@ -118,6 +132,7 @@ erDiagram
     "bronze.raw" ||--o{ "silver.news_incremental" : "viimati töödeldud rida"
     "silver.news_incremental" ||--o{ "silver.news" : "jälgib viimast laadimist"
     "silver.keywords" }|--|{ "silver.news" : "teksti analüüs"
+    "silver.news" ||--o{ "silver.news_categories" : "kategooriad"
 ```
 
 
