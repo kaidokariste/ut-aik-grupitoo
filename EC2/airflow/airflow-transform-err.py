@@ -6,6 +6,7 @@ parsib uudised, filtreerib kategooriate järgi ja
 laadib silver.news tabelisse.
 """
 
+import logging
 from datetime import datetime
 import dateutil.parser
 from bs4 import BeautifulSoup
@@ -52,7 +53,7 @@ def fetch_new_bronze_rows(**context):
         result = cur.fetchone()
         latest_bronze_id = result[0] if result else 0
 
-        print(f"Viimane töödeldud bronze ID ({SOURCE}): {latest_bronze_id}")
+        logging.info(f"Viimane töödeldud bronze ID ({SOURCE}): {latest_bronze_id}")
 
         # Pärime kõik uued read
         cur.execute(
@@ -61,7 +62,7 @@ def fetch_new_bronze_rows(**context):
         )
         rows = cur.fetchall()
 
-        print(f"Leitud {len(rows)} uut bronze rida")
+        logging.info(f"Leitud {len(rows)} uut bronze rida")
 
         # Edastame andmed järgmisele taskile XCom kaudu
         context['ti'].xcom_push(key='bronze_rows', value=rows)
@@ -76,7 +77,7 @@ def transform_and_load(**context):
     rows = context['ti'].xcom_pull(key='bronze_rows', task_ids='fetch_new_bronze_rows')
 
     if not rows:
-        print("Uusi bronze ridu ei leitud, midagi pole teha.")
+        logging.info("Uusi bronze ridu ei leitud, midagi pole teha.")
         return
 
     pg_hook = PostgresHook(
@@ -96,7 +97,7 @@ def transform_and_load(**context):
         result = cur.fetchone()
         err_benchmark = result[0]
 
-        print(f"Algne ERR benchmark: {err_benchmark}")
+        logging.info(f"Algne ERR benchmark: {err_benchmark}")
 
         dates = []
         max_bronze_id = 0
@@ -112,28 +113,40 @@ def transform_and_load(**context):
             for a in articles:
                 pubDate = a.find('pubDate').text
                 isodate = dateutil.parser.parse(pubDate)
-                category = a.find('category').text
+                categories = [c.text.strip() for c in a.find_all('category') if c.text]
+                is_excluded = len(categories) > 0 and all(cat in EXCLUDE_TOPICS for cat in categories)
 
                 # Filtreerimine: ainult uued ja lubatud kategooriad
-                if err_benchmark < isodate and category not in EXCLUDE_TOPICS:
+                if err_benchmark < isodate and not is_excluded:
                     title = a.find('title').text
                     description = a.find('description').text
                     link = a.find('link').text
 
                     # Uue uudise lisamine silver tabelisse
-                    sql = """INSERT INTO silver.news (source, news_dtime, title, category, description, link)
-                             VALUES (%s, %s, %s, %s, %s, %s)"""
-                    cur.execute(sql, (SOURCE, isodate, title, category, description, link))
+                    sql = """INSERT INTO silver.news (source, news_dtime, title, description, link)
+                             VALUES (%s, %s, %s, %s, %s)
+                             ON CONFLICT (link) DO NOTHING
+                             RETURNING id"""
+                    cur.execute(sql, (SOURCE, isodate, title, description, link))
+                    res = cur.fetchone()
+                    if res:
+                        news_id = res[0]
+                        # Lisame kategooriad seostabelisse
+                        for cat in categories:
+                            sql_cat = """INSERT INTO silver.news_categories (news_id, category)
+                                         VALUES (%s, %s)
+                                         ON CONFLICT (news_id, category) DO NOTHING"""
+                            cur.execute(sql_cat, (news_id, cat))
 
                     dates.append(isodate)
                     inserted_count += 1
-                    print(f"Salvestatud: {title}")
+                    logging.info(f"Salvestatud: {title}")
 
         # Uuendame benchmarke
         currentbenchmark = ''
         if dates:
             currentbenchmark = max(dates)
-            print(f"Uus ERR benchmark: {currentbenchmark}")
+            logging.info(f"Uus ERR benchmark: {currentbenchmark}")
 
         # Uuendame news_dtime benchmarki
         sql_update = """UPDATE silver.news_incremental
@@ -149,10 +162,10 @@ def transform_and_load(**context):
             cur.execute(sql_bronze, (max_bronze_id, SOURCE))
 
         conn.commit()
-        print(f"Kokku lisatud {inserted_count} uudist, max bronze ID: {max_bronze_id}")
+        logging.info(f"Kokku lisatud {inserted_count} uudist, max bronze ID: {max_bronze_id}")
 
     except Exception as e:
-        print(f"Viga: {e}")
+        logging.error(f"Viga: {e}")
         raise
 
     finally:

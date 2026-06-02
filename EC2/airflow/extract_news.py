@@ -63,17 +63,25 @@ def get_err_news():
         for a in articles:
             pubDate = a.find('pubDate').text
             isodate = dateutil.parser.parse(pubDate)
-            category = a.find('category').text
+            categories = [c.text.strip() for c in a.find_all('category') if c.text]
+            is_excluded = len(categories) > 0 and all(cat in exclude_topics for cat in categories)
             # Get only news where date is newer than current saved benchmark and category is not excluded
-            if err_benchmark < isodate and category not in exclude_topics:
+            if err_benchmark < isodate and not is_excluded:
                 title = a.find('title').text
                 description = a.find('description').text
                 link = a.find('link').text
 
                 # SQL Insert
-                sql = """INSERT INTO silver.news (source, news_dtime, title, category, description, link) VALUES (%s, %s, %s, %s, %s, %s )"""
+                sql = """INSERT INTO silver.news (source, news_dtime, title, description, link) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (link) DO NOTHING RETURNING id"""
 
-                cur.execute(sql, ('ERR', isodate, title, category, description, link))
+                cur.execute(sql, ('ERR', isodate, title, description, link))
+                res = cur.fetchone()
+                if res:
+                    news_id = res[0]
+                    for cat in categories:
+                        sql_cat = """INSERT INTO silver.news_categories (news_id, category) VALUES (%s, %s) ON CONFLICT (news_id, category) DO NOTHING"""
+                        cur.execute(sql_cat, (news_id, cat))
+
                 dates.append(isodate)
                 print(f"Salvestatud: {title}")
 
@@ -112,7 +120,7 @@ def get_aripaev_news():
         conn = get_connection()
         cur = conn.cursor()
 
-        sql_ts = """SELECT latest_news_dtime FROM silver.news_incremental WHERE source = 'AP'"""
+        sql_ts = """SELECT latest_news_dtime FROM silver.news_incremental WHERE source = 'ÄRIPÄEV'"""
 
         ## Peaks tegema päringu incremental tabelisse
 
@@ -126,20 +134,28 @@ def get_aripaev_news():
         for a in articles:
             pubDate = a.find('pubDate').text.strip()
             isodate = dateutil.parser.parse(pubDate)
-            category = a.find('category').text.strip()
+            categories = [c.text.strip() for c in a.find_all('category') if c.text]
+            is_excluded = len(categories) > 0 and all(cat in exclude_topics for cat in categories)
             # Get only news where date is newer than current saved benchmark and category is not excluded
 
-            if ap_benchmark < isodate and category not in exclude_topics:
+            if ap_benchmark < isodate and not is_excluded:
                 title = a.find('title').text.strip()
                 description = a.find('description').text.strip()
                 link = a.find('link').text.strip()
 
-            # SQL Insert
-            sql = """INSERT INTO silver.news (source, news_dtime, title, category, description, link) VALUES (%s, %s, %s, %s, %s, %s)"""
+                # SQL Insert
+                sql = """INSERT INTO silver.news (source, news_dtime, title, description, link) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (link) DO NOTHING RETURNING id"""
 
-            cur.execute(sql, ('AP', isodate, title, category, description, link))
-            dates.append(isodate)
-            print(f"Salvestatud: {title}")
+                cur.execute(sql, ('ÄRIPÄEV', isodate, title, description, link))
+                res = cur.fetchone()
+                if res:
+                    news_id = res[0]
+                    for cat in categories:
+                        sql_cat = """INSERT INTO silver.news_categories (news_id, category) VALUES (%s, %s) ON CONFLICT (news_id, category) DO NOTHING"""
+                        cur.execute(sql_cat, (news_id, cat))
+
+                dates.append(isodate)
+                print(f"Salvestatud: {title}")
 
         if dates:
             currentbenchmark = max(dates)
@@ -148,7 +164,7 @@ def get_aripaev_news():
         # Uuenda ERR benchmark
         sql_update = """ UPDATE silver.news_incremental \
                          SET latest_news_dtime = COALESCE(NULLIF(%s::TEXT, ''), latest_news_dtime::TEXT)::TIMESTAMPTZ \
-                         WHERE source = 'AP' """
+                         WHERE source = 'ÄRIPÄEV' """
         cur.execute(sql_update, (currentbenchmark,))
 
         conn.commit()
