@@ -90,6 +90,20 @@ Märksõnade tabel teksti analüüsiks ja stoppsõnade filtreerimiseks:
 
 **Stoppsõnad**: eesti keele levinumad sidesõnad, asesõnad ja muud semantiliselt tühjad sõnad (~200 sõna).
 
+### Gold kiht — `gold.news` (view)
+
+Deduplicated, cleaned up and re-joined with categories (link ommited):
+
+| Veerg         | Tüüp                 | Kirjeldus                      |
+|---------------|----------------------|--------------------------------|
+| `id`          | BIGINT PK (IDENTITY) | Surrogaatvõti                  |
+| `source`      | VARCHAR              | Allikas (ERR / AP / PM)        |
+| `news_dtime`  | TIMESTAMPTZ          | Uudise avaldamise aeg          |
+| `title`       | VARCHAR              | Pealkiri                       |
+| `description` | TEXT                 | Uudise kirjeldus/lühikokkuvõte |
+| `categories`  | VARCHAR              | Kõik seotud kategooriad        |
+| `category_ct` | BIGINT               | Kategooriate arv               |
+
 ## Tabelite seosed
 
 ```mermaid
@@ -128,11 +142,23 @@ erDiagram
         BOOLEAN wanted
     }
 
+    "gold.news" {
+        BIGINT id
+        VARCHAR source
+        TIMESTAMPTZ news_dtime
+        VARCHAR title
+        TEXT description
+        VARCHAR link
+        VARCHAR categories
+        BIGINT category_ct
+    }
+
     "bronze.raw" ||--o{ "silver.news" : "allikas (XML parsimine)"
     "bronze.raw" ||--o{ "silver.news_incremental" : "viimati töödeldud rida"
     "silver.news_incremental" ||--o{ "silver.news" : "jälgib viimast laadimist"
     "silver.keywords" }|--|{ "silver.news" : "teksti analüüs"
     "silver.news" ||--o{ "silver.news_categories" : "kategooriad"
+    "gold.news" ???
 ```
 
 

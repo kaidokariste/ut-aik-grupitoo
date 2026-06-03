@@ -114,3 +114,28 @@ WHERE puhas_sona <> '' -- avoid empty strings after cleaning
 GROUP BY puhas_sona
 --HAVING COUNT(*) > 10
 ORDER BY total_use DESC;
+
+------------------
+
+-- Gold : clean up, deduplicate and join categories
+DROP VIEW IF EXISTS gold.news;
+CREATE VIEW gold.news AS
+WITH dedup_cleaned_news AS
+  (SELECT DISTINCT ON (description) *                              -- DQ: Removing duplicates, considering description as unique identifier
+   FROM silver.news
+   WHERE ( TRIM( description ) <> '' AND description IS NOT NULL ) -- DQ: Description not empty
+     AND ( TRIM( title ) <> '' AND title IS NOT NULL )             -- DQ: Title not empty
+)
+SELECT
+  t1.id,
+  t1.source,
+  t1.news_dtime,
+  regexp_replace(t1.title, '</?em>', '', 'g') AS title, -- DQ: Removing markdown
+  regexp_replace(t1.description, '</?em>', '', 'g'),    -- DQ: Removing markdown
+  /*t1.link,*/
+  string_agg(t2.category,',') AS categories, count(t2.category) AS category_ct
+FROM dedup_cleaned_news t1
+  LEFT JOIN silver.news_categories t2 ON t1.id = t2.news_id
+GROUP BY t1.id, t1.source, t1.news_dtime, t1.title, t1.description /*,t1.link*/
+/*ORDER BY 7 DESC*/
+;

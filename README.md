@@ -164,12 +164,10 @@ Metabase enda metaandmebaasi konfigureerimiseks kasutatakse faili [metabase/.env
 
 Projekt kontrollib järgmist:
 
-1. [Test 1 - *]
-2. [Test 2 - *]
-3. [Test 3 - *]
-[Lisa rohkem, kui sul on]
-
-Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
+1. Ingestion requirements - prevents insertion if not met - we are excluding certain topics or categories, hardcoded in the Airflow transformation DAGs
+2. Gold filtering - prevents empty description and duplicate (by description) news moving to gold - view query.
+3. Metabase monitoring - we are monitoring data freshness (when it was last pulled/renewed) and certain anomalies via metabase DQ Dags.
+All searchable by "DQ" in the repo/code.
 
 ## Projekti struktuur
 

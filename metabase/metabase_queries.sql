@@ -217,3 +217,24 @@ FROM theme_matches
 GROUP BY day, theme
 ORDER BY day ASC, article_count DESC;
 ------------------------------------------------------------------------------------------------------------------------
+-- Data quality / monitoring
+
+-- DQ : Data freshness (max news_dtime interval from now) - Timeliness
+SELECT TO_CHAR((current_timestamp - max(news_dtime)), 'HH24:MI') FROM silver.news;
+
+-- DQ : Category case sensitivity anomalies (same category written in multiple ways)
+WITH distinct_category AS ( SELECT DISTINCT category FROM silver.news_categories ORDER BY 1 )
+SELECT lower(category) AS case_insensitive_cateogry, count(*), array_agg(category) AS distinct_categories
+FROM distinct_category
+GROUP BY lower(category)
+HAVING count(*) > 1;
+
+-- DQ : Link correctness issues (must start with https:// or http:// and contains .ee/)
+SELECT count(*)
+FROM silver.news WHERE NOT ((link ILIKE 'https://%' OR link ILIKE 'http://%') AND (link ILIKE '%.ee/%'));
+
+-- DQ : Title or description contains markup
+SELECT
+  --title, description,
+  count(*)
+FROM silver.news WHERE title ILIKE '%<%>%' OR description ILIKE '%<%>%';

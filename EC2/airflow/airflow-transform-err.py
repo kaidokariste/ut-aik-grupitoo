@@ -26,7 +26,7 @@ EXCLUDE_TOPICS = [
     'Teater', 'ETV uudised', 'Raadiouudised', 'Galerii',
     'Kultuurisaated', 'Viipekeelsed', 'Tele/raadio', 'Loodus',
     'Galeriid', 'TV10 Olümpiastarti', 'Muusika', 'ETV spordisaade'
-]
+] # DQ: Excluding certain topics/categories from ingestion
 
 SOURCE = 'ERR'
 
