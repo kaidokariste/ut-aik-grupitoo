@@ -12,18 +12,19 @@ ORDER BY n.source, count DESC;
 ------------------------------------------------------------------------------------------------------------------------
 -- Maailmasündmuste jaotus kategooriate järgi
 
-SELECT
-  c.category,
-  CASE
-    WHEN n.title ILIKE '%usa%' THEN 'USA'
-    WHEN n.title ILIKE '%venemaa%' THEN 'Venemaa'
-    WHEN n.title ILIKE '%Iraan%' THEN 'Iraan'
-    WHEN n.title ILIKE '%hiina%' THEN 'Hiina'
-    ELSE 'Other'
-  END AS keyword,
-  COUNT(DISTINCT n.title) AS count
+SELECT c.category,
+       CASE WHEN n.title ~* '\y(usa|trump|donald|maga|ameerika)\y'
+              THEN 'USA'
+            WHEN title ~* '\y(putin|venemaa|medvedev|lavrov)\y'
+              THEN 'Venemaa'
+            WHEN title ~* '\y(iraan|khamenei|teheran)\y'
+              THEN 'Iraan'
+            WHEN title ~* '\y(xi|taiwan|hiina)\y'
+              THEN 'Hiina' END AS keyword,
+       COUNT(DISTINCT n.title) AS count
 FROM silver.news n
-LEFT JOIN silver.news_categories c ON n.id = c.news_id
+     LEFT JOIN silver.news_categories c ON n.id = c.news_id
+WHERE title ~* '\y(usa|venemaa|iraan|hiina)\y'
 GROUP BY c.category, keyword
 ORDER BY c.category, count DESC;
 ------------------------------------------------------------------------------------------------------------------------
@@ -79,7 +80,7 @@ WITH themes AS (
 
     SELECT 'Iraani sõda', keyword
     FROM silver.keywords
-    WHERE LOWER(keyword) IN ('iraan','iran','teheran')
+    WHERE LOWER(keyword) IN ('iraan','iran','teheran','khamenei')
 
     UNION ALL
 
@@ -90,22 +91,22 @@ WITH themes AS (
 
 cleaned_news AS (
     SELECT DISTINCT
-        description,
+        title,
         date_trunc('day', news_dtime) AS day
     FROM silver.news
 ),
 
 normalized_news AS (
     SELECT
-        description,
+        title,
         day,
-        REGEXP_REPLACE(LOWER(description), '[^a-zäöüõ\s]', '', 'g') AS clean_text
+        REGEXP_REPLACE(LOWER(title), '[^a-zäöüõ\s]', '', 'g') AS clean_text
     FROM cleaned_news
 ),
 
 theme_matches AS (
     SELECT DISTINCT
-        n.description,
+        n.title,
         n.day,
         t.theme
     FROM normalized_news n
@@ -175,7 +176,7 @@ WITH themes AS (
 
     SELECT 'Iraani sõda', keyword
     FROM silver.keywords
-    WHERE LOWER(keyword) IN ('iraan','iran','teheran')
+    WHERE LOWER(keyword) IN ('iraan','iran','teheran','khamenei')
 
     UNION ALL
 
