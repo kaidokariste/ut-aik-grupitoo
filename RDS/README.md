@@ -92,7 +92,7 @@ Märksõnade tabel teksti analüüsiks ja stoppsõnade filtreerimiseks:
 
 ### Gold kiht — `gold.news` (view)
 
-Deduplicated, cleaned up and re-joined with categories (link ommited):
+Duplikaatide eemaldamine, puhastamine ja kategooriatega uuesti ühendamine (link välja jäetud):
 
 | Veerg         | Tüüp                 | Kirjeldus                      |
 |---------------|----------------------|--------------------------------|
@@ -151,6 +151,7 @@ erDiagram
         VARCHAR link
         VARCHAR categories
         BIGINT category_ct
+        %% VIEW (not a physical table)
     }
 
     "bronze.raw" ||--o{ "silver.news" : "allikas (XML parsimine)"
@@ -158,7 +159,10 @@ erDiagram
     "silver.news_incremental" ||--o{ "silver.news" : "jälgib viimast laadimist"
     "silver.keywords" }|--|{ "silver.news" : "teksti analüüs"
     "silver.news" ||--o{ "silver.news_categories" : "kategooriad"
-    "gold.news" ???
+    "silver.news" ||--o{ "gold.news" : "puhastus + deduplikatsioon"
+    "silver.news_categories" ||--o{ "gold.news" : "kategooriate koondamine"
+
+
 ```
 
 
