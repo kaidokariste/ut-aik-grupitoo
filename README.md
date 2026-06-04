@@ -72,13 +72,13 @@ Kuna projekt kasutab erinevaid AWS-teenuseid, on käivitamine ja seadistamine ja
 ### 1. Andmebaas (Amazon RDS PostgreSQL)
 Projekti andmebaas asub Amazon RDS-is (mootor: PostgreSQL, klass: `db.t4g.micro`).
 - Andmebaasi skeemide (`bronze`, `silver`, `gold`), tabelite ja algsete märksõnade seadistamiseks tuleb andmebaasis käivitada skript [db_setup.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/db_setup.sql).
-- Täpsem info andmebaasi struktuuri kohta asub kataloogis [RDS/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/README.md).
+- Täpsem info andmebaasi struktuuri kohta asub kataloogis [RDS/README.md](./RDS/README.md).
 
 ### 2. Sissevõtt (AWS Lambda & Amazon EventBridge)
 Uudistevoogude tõmbamiseks ja toorandmete salvestamiseks `bronze.raw` tabelisse kasutatakse kolme serverless AWS Lambda funktsiooni: `rss-fetcher-err`, `rss-fetcher-aripaev` ja `rss-fetcher-postimees`.
-- Lambda funktsioonide kood asub failis [lambda_function.py](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/lambda_function.py).
+- Lambda funktsioonide kood asub failis [lambda_function.py](./lambda/lambda_function.py).
 - Funktsioonide käivitamist reguleerib Amazon EventBridge Scheduler kord tunnis.
-- Rohkem detaile sissevõtu seadistamise kohta leiab juhendist [lambda/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/README.md).
+- Rohkem detaile sissevõtu seadistamise kohta leiab juhendist [lambda/README.md](./lambda/README.md).
 
 ### 3. Transformatsioon ja orkestreerimine (AWS EC2 & Apache Airflow)
 Apache Airflow keskkond töötab AWS EC2 instantsis (Ubuntu 26.04 LTS) Docker Compose abil.
@@ -97,7 +97,7 @@ Airflow käivitamiseks masinas:
    ```
 4. Ava veebiliides: `http://<EC2-IP>:8080` (kasutaja/parool seadistatakse `.env` failis).
 5. Lisaks tuleb Airflow veebiliideses luua andmebaasi ühendus nimega `aws-postgres` (tüüp: Postgres), mis viitab Amazon RDS andmebaasile.
-- Täpsem info asub juhendis [EC2/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/README.md).
+- Täpsem info asub juhendis [EC2/README.md](./EC2/README.md).
 
 ### 4. Näidikulaud (Metabase)
 Metabase töötab Docker Compose abil kas lokaalselt või EC2 virtuaalmasinas.
@@ -115,7 +115,7 @@ Metabase töötab Docker Compose abil kas lokaalselt või EC2 virtuaalmasinas.
    ```
 4. Ava Metabase veebiliides: `http://localhost:3000` (või vastaval EC2 pordil).
 5. Ühenda Metabase oma RDS andmebaasiga veebiliidese seadete kaudu.
-- Täpsem info asub juhendis [metabase/README.md](file:///c:/Users/arnop/ut-aik-grupitoo/metabase/README.md).
+- Täpsem info asub juhendis [metabase/README.md](./metabase/README.md).
 
 ## Saladused ja konfiguratsioon
 
@@ -152,8 +152,8 @@ Metabase enda metaandmebaasi konfigureerimiseks kasutatakse faili [metabase/.env
 
 ## Andmevoog lühidalt
 
-1. **Sissevõtt (Extract)** — AWS Lambda funktsioonid tõmbavad regulaarselt ERR ja Äripäeva RSS-vooge ning lisavad need unikaalsuse kontrolliga (MD5 räsi) `bronze.raw` tabelisse. Kuna see on serverless ja odav, saab seda jooksutada pidevalt.
-2. **Laadimine & Transformatsioon (Transform & Load)** — Airflow eraldiseisvad DAG-id (`transform_err_bronze_to_silver` ja `transform_aripaev_bronze_to_silver`) loevad toorandmeid skeemist `bronze`, viivad läbi transformatsioonid, filtreerivad lubamatud kategooriad ning kirjutavad tulemused `silver.news` tabelisse. Kulude kokkuhoiuks käivitatakse neid vajadusel käsitsi või korra tunnis (säästes EC2 tööaega).
+1. **Sissevõtt (Extract)** — AWS Lambda funktsioonid tõmbavad regulaarselt ERR, Äripäeva ja Postimehe RSS-vooge ning lisavad need unikaalsuse kontrolliga (MD5 räsi) `bronze.raw` tabelisse. Kuna see on serverless ja odav, saab seda jooksutada pidevalt.
+2. **Laadimine & Transformatsioon (Transform & Load)** — Airflow eraldiseisvad DAG-id (`transform_err_bronze_to_silver`, `transform_aripaev_bronze_to_silver`, `airflow-transform-postimees.py`) loevad toorandmeid skeemist `bronze`, viivad läbi transformatsioonid, filtreerivad lubamatud kategooriad ning kirjutavad tulemused `silver.news` tabelisse. Kulude kokkuhoiuks käivitatakse neid vajadusel käsitsi või korra tunnis (säästes EC2 tööaega).
 3. **Inkrementaalsus** — Airflow jälgib viimati töödeldud rea ID-d (`latest_bronze_id`) tabelis `silver.news_incremental`, tagades, et igal käivitamisel töödeldakse vaid uusi toorandmeid.
 4. **Testimine** — Andmekvaliteedi testid kontrollivad andmete terviklikkust.
 5. **Näidikulaud** — Metabase teeb päringuid `silver` (ja hiljem `gold`) kihi pealt äriküsimustele vastamiseks.
@@ -204,26 +204,26 @@ All searchable by "DQ" in the repo/code.
 ```
 
 ### Olulisemad failid:
-- **Dokumentatsioon**: [arhitektuur.md](file:///c:/Users/arnop/ut-aik-grupitoo/docs/arhitektuur.md), [progress.md](file:///c:/Users/arnop/ut-aik-grupitoo/docs/progress.md)
-- **Sissevõtt (AWS Lambda)**: [lambda_function.py](file:///c:/Users/arnop/ut-aik-grupitoo/lambda/lambda_function.py)
+- **Dokumentatsioon**: [arhitektuur.md](./docs/arhitektuur.md), [progress.md](./docs/progress.md)
+- **Sissevõtt (AWS Lambda)**: [lambda_function.py](./lambda/lambda_function.py)
 - **ETL & Orkestreerimine (Airflow)**: 
-  - [airflow-transform-err.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-transform-err.py)
-  - [airflow-transform-aripaev.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-transform-aripaev.py)
-  - [airflow-transform-postimees.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/airflow-transform-postimees.py)
-  - [extract_news.py](file:///c:/Users/arnop/ut-aik-grupitoo/EC2/airflow/extract_news.py)
-- **Andmebaas (PostgreSQL RDS)**: [db_setup.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/db_setup.sql), [bronze.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/bronze.sql), [migrate_db_categories.sql](file:///c:/Users/arnop/ut-aik-grupitoo/RDS/migrate_db_categories.sql)
-- **Näidikulaud (Metabase)**: [metabase_queries.sql](file:///c:/Users/arnop/ut-aik-grupitoo/metabase/metabase_queries.sql)
+  - [airflow-transform-err.py](./EC2/airflow/airflow-transform-err.py)
+  - [airflow-transform-aripaev.py](./EC2/airflow/airflow-transform-aripaev.py)
+  - [airflow-transform-postimees.py](./EC2/airflow/airflow-transform-postimees.py)
+  - [extract_news.py](./EC2/airflow/extract_news.py)
+- **Andmebaas (PostgreSQL RDS)**: [db_setup.sql](./RDS/db_setup.sql), [bronze.sql](./ut-aik-grupitoo/RDS/bronze.sql), [migrate_db_categories.sql](./RDS/migrate_db_categories.sql)
+- **Näidikulaud (Metabase)**: [metabase_queries.sql](./metabase/metabase_queries.sql)
 
 ## Kokkuvõte, puudused ja võimalikud edasiarendused
 
 **Kokkuvõte:**
-- [Loetle, mis on lõpule viidud, mis töötab hästi]
+- Kogu voog töötab hästi. Kuna igapäevaselt keegi RSS voogudest andmetorusid ei ehita, tundus see põnev ja jõukohane väljakutse, mis lõpuks võib samuti ootamatuid ja üllatavaid tulemusi anda.
 
 **Puudused:**
-- [Loetle ausalt, mis jäi tegemata - see ei mõjuta hinnet negatiivselt, vaid aitab hinnata]
+- Projekti keskel tuli üllatusena kui palju EC2 instants raha võtab. Airflow jooksutamisega panime üles 8GB RAM ja 50GB SSD-ga masina. Hinnakirjas oli see 10s/h, aga pigem muude lisadega oli see 20s/h. Lamda funktsioonid on toredad, aga andmete sissevõtu mõttes üleinseneerimine.
 
 **Mis edasi:**
-- [Mida tahaksid edasi teha, kui aega oleks rohkem]
+- Voogu tekkis liiga palju komponente, mis teatud hetkel võivad tõrkuma hakata. Ilmselt me läheks lambda funktsioonidele üle ja loobuks EC2st ning Airflowst.
 
 ## Meeskond
 
