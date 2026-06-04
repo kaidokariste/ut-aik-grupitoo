@@ -16,6 +16,7 @@ Geopoliitiliste kriiside ja nendega seotud isikute kajastatuse osakaal ning tema
 |---------|------|--------------|------|
 | [ERR RSS](https://www.err.ee/rss) | RSS | Jah, iga tund | Põhiandmevoog |
 | [Äripäev RSS](http://feeds.feedburner.com/aripaev-rss) | RSS | Jah, iga tund  | Põhiandmevoog |
+| [Postimees RSS](https://www.postimees.ee/rss) | RSS | Jah, iga tund | Põhiandmevoog |
 
 ## Andmevoog
 
