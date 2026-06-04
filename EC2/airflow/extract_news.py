@@ -1,3 +1,5 @@
+# Enne Airflow DAGi tegemist pythoni skript
+
 import requests
 import psycopg2
 from bs4 import BeautifulSoup
