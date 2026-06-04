@@ -9,7 +9,7 @@
 - [X] Andmed laetakse `silver` kihti inkrementaalselt
 - [X] Vähemalt üks näidikulaud on nähtaval (Metabase seadistatud)
 - [X] Ülesannete eraldatus (Separation of Concerns): loodud eraldi transformatsiooni DAG-id mõlemale allikale (`transform_err_bronze_to_silver` ja `transform_aripaev_bronze_to_silver`)
-- [ ] Vähemalt üks andmekvaliteedi test läbib
+- [X] Vähemalt üks andmekvaliteedi test läbib
 
 Andmevoog on otsast lõpuni käivitatav (allikast `bronze` kihti läbi Lambda ja sealt `silver` kihti ning näidikutabeleisse). Vanem monoliitne DAG on märgitud aegunuks (deprecated). Kuna Airflow EC2 instantsi pidev jooksutamine on kulukas, on hetkel lahendus testimisfaasis: odavad serverless Lambda funktsioonid koguvad pidevalt toorandmeid `bronze` kihti ja uued transformatsiooni DAG-id käivitatakse käsitsi või tunnisel graafikul.
 
