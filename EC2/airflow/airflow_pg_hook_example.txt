@@ -1,3 +1,7 @@
+#
+# Lihtne abifunktsioon, kuidas airflows Postgresi connectionit teha.
+#
+
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 
